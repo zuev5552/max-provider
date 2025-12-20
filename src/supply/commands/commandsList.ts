@@ -1,0 +1,15 @@
+export const commandsList = [
+  { name: 'faq', description: 'вопросы и ответы' },
+  { name: 'auth', description: 'авторизация' },
+  { name: 'testo20', description: 'Тесто 20' },
+  { name: 'testo25', description: 'Тесто 25' },
+  { name: 'testo30', description: 'Тесто 30' },
+  { name: 'testo35', description: 'Тесто 35' },
+  { name: 'mozzarella', description: 'Сыр моцарелла' },
+  { name: 'box20', description: 'Коробка 20' },
+  { name: 'box25', description: 'Коробка 25' },
+  { name: 'box30', description: 'Коробка 30' },
+  { name: 'box35', description: 'Коробка 35' },
+  { name: 'box', description: 'Коробка для закусок' },
+  { name: 'change', description: 'остатки по прочему сырью' },
+];
