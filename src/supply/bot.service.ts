@@ -5,14 +5,16 @@ import { env } from '../config/env';
 import { commandsList } from './commands/commandsList';
 import { faq } from './commands/faq';
 import { start_bot } from './commands/start';
-import { authDialogue } from '@/auth';
+import { AuthService } from '@/auth/auth.service'; // Импорт сервиса
+
+// import { authDialogue } from '@/auth';
 
 @Injectable()
 export class SupplyBotService {
   private bot: Bot;
   private readonly logger = new Logger(SupplyBotService.name);
 
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     if (!env.SUPPLY_BOT_TOKEN) {
       this.logger.error('SUPPLY_BOT_TOKEN не найден в .env. Отправка сообщений будет отключена.');
       throw new Error('Token SUPPLY_BOT_TOKEN must be provided');
@@ -35,13 +37,15 @@ export class SupplyBotService {
   async eventListener() {
     try {
 
+      this.authService.setupBot(this.bot);
+
       this.bot.on('bot_started', async ctx => {
         await ctx.reply(start_bot(), {
           attachments: [Keyboard.inlineKeyboard([[Keyboard.button.callback('Авторизация', 'auth_start')]])],
         });
       });
 
-      authDialogue(this.bot);
+      // authDialogue(this.bot);
 
       // прослушка команд
       this.bot.command('faq', async (ctx: Context) => await ctx.reply(faq(), { format: 'html' }));

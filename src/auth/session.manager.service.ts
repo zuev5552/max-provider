@@ -14,7 +14,7 @@ export class SessionManagerService {
       possibleStaff: null,
       matchedStaff: null,
       createdAt: new Date(),
-      chatId,
+      timeoutId: undefined,
     });
   }
 

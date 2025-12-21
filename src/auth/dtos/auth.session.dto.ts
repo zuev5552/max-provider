@@ -8,5 +8,7 @@ export class AuthSessionDto {
   possibleStaff: Staff[] | null;
   matchedStaff: Staff | null;
   createdAt: Date;
-  chatId: number;
+  
+  // Добавляем поле для хранения ID таймера
+  timeoutId?: NodeJS.Timeout; // может быть undefined или ID таймера
 }

@@ -7,16 +7,17 @@ datasource db {
 }
 
 model User {
-  id           String         @id @db.VarChar(32)
+  id           String   @id @db.VarChar(32)
   name         String
   accessToken  String
   refreshToken String
-  lastLoginAt  DateTime       @default(now())
-  isSyncDone   Boolean        @default(false)
-  isActive     Boolean        @default(true)
-  subscribes   Subscribe[]
-  telegram     UserTelegram?
-  unitsRoles   UserUnitRole[]
+  lastLoginAt  DateTime @default(now())
+  isSyncDone   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+
+  telegram   UserTelegram?
+  unitsRoles UserUnitRole[]
+  subscribes Subscribe[]
 
   @@map("users")
 }
@@ -24,59 +25,64 @@ model User {
 model UserTelegram {
   userId   String @id @db.VarChar(32)
   telegram String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("users_telegram")
 }
 
 model Role {
-  id              Int            @id
-  name            String
+  id   Int    @id
+  name String
+
   usersUnitsRoles UserUnitRole[]
 
   @@map("roles")
 }
 
 model Position {
-  id            String  @id
+  id            String @id
   name          String
   staffTypeName String
-  staff         Staff[]
+
+  staff Staff[]
 
   @@map("positions")
 }
 
 model UnitType {
-  id    Int    @id
-  name  String
+  id   Int    @id
+  name String
+
   units Unit[]
 
   @@map("units_types")
 }
 
 model Unit {
-  id              String            @id @db.VarChar(32)
-  name            String
-  typeId          Int
-  country         String?
-  region          String?
-  district        String?
-  locality        String?
-  state           String?
-  timezone        String?
-  couriersOrder   CouriersOrder[]
-  inventoryStocks InventoryStocks[]
-  lowerStocks     LowerStock[]
-  premiumRules    PremiumRule[]
-  schedules       Schedule[]
-  settingsUnit    SettingsUnit?
-  shifts          Shift[]
-  staff           Staff[]
-  stocksSettings  StocksSettings[]
-  subscribes      Subscribe[]
-  type            UnitType          @relation(fields: [typeId], references: [id])
-  departments     UnitDepartment[]
-  unitsRoles      UserUnitRole[]
+  id       String  @id @db.VarChar(32)
+  name     String
+  typeId   Int
+  country  String?
+  region   String?
+  district String?
+  locality String?
+  state    String?
+  timezone String?
+
+  type             UnitType          @relation(fields: [typeId], references: [id])
+  unitsRoles       UserUnitRole[]
+  staff            Staff[]
+  subscribes       Subscribe[]
+  departments      UnitDepartment[]
+  inventoryStocks  InventoryStocks[]
+  lowerStocks      LowerStock[]
+  settingsUnit     SettingsUnit?
+  stocksSettings   StocksSettings[]
+  shifts           Shift[]
+  schedules        Schedule[]
+  premiumRuleUnits PremiumRuleUnit[]
+  couriersOrder    CouriersOrder[]
 
   @@map("units")
 }
@@ -85,9 +91,10 @@ model UserUnitRole {
   userId String @db.VarChar(32)
   unitId String @db.VarChar(32)
   roleId Int
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([userId, unitId, roleId])
   @@index([unitId])
@@ -96,10 +103,10 @@ model UserUnitRole {
 }
 
 model Staff {
-  id                           String                @id @db.VarChar(32)
-  userId                       String?               @db.VarChar(32)
-  unitId                       String                @db.VarChar(32)
-  positionId                   String?               @db.VarChar(32)
+  id                           String    @id @db.VarChar(32)
+  userId                       String?   @db.VarChar(32)
+  unitId                       String    @db.VarChar(32)
+  positionId                   String?   @db.VarChar(32)
   firstName                    String
   lastName                     String
   patronymicName               String?
@@ -112,46 +119,71 @@ model Staff {
   status                       Status
   positionName                 String?
   taxpayerIdentificationNumber String?
-  employmentTypeId             String                @db.VarChar(32)
+  employmentTypeId             String    @db.VarChar(32)
   employmentTypeName           String
   lastModifiedAt               DateTime
-  couriersOrder                CouriersOrder[]
-  premiumApplied               PremiumApplication[]
-  dailyPremiumSummaries        PremiumDailySummary[]
-  schedules                    Schedule[]
-  shifts                       Shift[]
-  position                     Position?             @relation(fields: [positionId], references: [id])
-  unit                         Unit                  @relation(fields: [unitId], references: [id])
-  telegram                     StaffTelegram?
+
+  unit                  Unit                  @relation(fields: [unitId], references: [id])
+  position              Position?             @relation(fields: [positionId], references: [id])
+  telegram              StaffTelegram?
+  shifts                Shift[]
+  schedules             Schedule[]
+  couriersOrder         CouriersOrder[]
+  premiumApplied        PremiumApplication[]
+  dailyPremiumSummaries PremiumDailySummary[]
+  staffMaxes            StaffMax[]
 
   @@index([unitId])
   @@map("staff")
 }
 
+enum Sex {
+  Unknown
+  Male
+  Female
+}
+
+enum StaffType {
+  Operator
+  KitchenMember
+  Courier
+  Cashier
+  PersonalManager
+}
+
+enum Status {
+  Active
+  Dismissed
+  Suspended
+}
+
 model StaffTelegram {
   staffId  String @id @db.VarChar(32)
   telegram String @db.VarChar
-  staff    Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("staff_telegram")
 }
 
 model Department {
-  id                 String              @id @db.VarChar(32)
-  name               String
-  franchiseeId       String
-  settingsDepartment SettingsDepartment?
-  settingsUnits      SettingsUnit[]
+  id           String @id @db.VarChar(32)
+  name         String
+  franchiseeId String
+
   units              UnitDepartment[]
+  settingsUnits      SettingsUnit[]
+  settingsDepartment SettingsDepartment?
 
   @@map("departments")
 }
 
 model UnitDepartment {
-  departmentId String     @db.VarChar(32)
-  unitId       String     @db.VarChar(32)
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  unit         Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  departmentId String @db.VarChar(32)
+  unitId       String @db.VarChar(32)
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit       Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([departmentId, unitId])
   @@map("units_departments")
@@ -162,8 +194,9 @@ model Subscribe {
   unitId      String   @db.VarChar(32)
   tariffAlias String
   expiresAt   DateTime
-  unit        Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([userId, unitId, tariffAlias])
   @@index([userId])
@@ -182,17 +215,19 @@ model InventoryStocks {
   currency                String
   avgWeekdayExpense       Decimal
   avgWeekendExpense       Decimal
-  daysUntilBalanceRunsOut Int
+  daysUntilBalanceRunsOut Int      @db.Integer
   calculatedAt            DateTime
-  unit                    Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([id, unitId])
   @@map("inventory_stocks")
 }
 
 model StocksId {
-  id          String       @id @db.VarChar(32)
-  name        String
+  id   String @id @db.VarChar(32)
+  name String
+
   lowerStocks LowerStock[]
 
   @@map("stocks_id")
@@ -209,25 +244,27 @@ model LowerStock {
   userName              String?
   notifiedDirector      Boolean   @default(false) @map("notified_director")
   notifiedSupplyManager Boolean   @default(false) @map("notified_supply_manager")
-  stock                 StocksId  @relation(fields: [stockId], references: [id], onDelete: Cascade)
-  unit                  Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  unit  Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  stock StocksId @relation(fields: [stockId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([calculatedAt, unitId, stockId], name: "lower_stock_unique")
   @@map("lower_stock")
 }
 
 model SettingsUnit {
-  unitId           String     @id @db.VarChar(32)
+  unitId           String    @id @db.VarChar(32)
   unitName         String
-  startTimeUtc     DateTime?  @map("start_time_utc") @db.Time(6)
-  selectStartTime  DateTime   @default(dbgenerated("'09:00:00'::time without time zone")) @map("select_start_time") @db.Time(6)
-  endTimeUtc       DateTime?  @map("end_time_utc") @db.Time(6)
-  selectEndTime    DateTime   @default(dbgenerated("'17:00:00'::time without time zone")) @map("select_end_time") @db.Time(6)
-  minRequiredStock Decimal?   @default(50) @map("min_required_stock")
-  idTelegramGroup  String?    @map("id_telegram_group")
-  departmentId     String     @map("department_id") @db.VarChar(32)
-  department       Department @relation(fields: [departmentId], references: [id])
-  unit             Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  startTimeUtc     DateTime? @map("start_time_utc") @db.Time
+  selectStartTime  DateTime  @default(dbgenerated("'09:00:00'::time without time zone")) @map("select_start_time") @db.Time
+  endTimeUtc       DateTime? @map("end_time_utc") @db.Time
+  selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @map("select_end_time") @db.Time
+  minRequiredStock Decimal?  @default(50) @map("min_required_stock")
+  idTelegramGroup  String?   @map("id_telegram_group")
+  departmentId     String    @map("department_id") @db.VarChar(32)
+
+  unit       Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id])
 
   @@map("settings_unit")
 }
@@ -241,51 +278,54 @@ model StocksSettings {
   isNotifyPrz      Boolean? @map("is_notify_prz")
   isSentMessagePrz Boolean  @default(false) @map("is_sent_message_prz")
   isNotifyDelay    Boolean  @default(false) @map("is_notify_delay")
-  unit             Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([idStock, unitId])
   @@map("stocks_settings")
 }
 
 model SettingsDepartment {
-  departmentId               String     @id @map("department_id") @db.VarChar(32)
-  departmentName             String     @map("department_name")
-  idTelegramSupplyDepartment String?    @map("id_telegram_supply_department")
-  idTelegramPrz              String?    @map("id_telegram_prz")
-  idTelegramDirector         String?    @map("id_telegram_director")
-  idTelegramSupplyManager    String?    @map("id_telegram_supply_manager")
-  department                 Department @relation(fields: [departmentId], references: [id])
+  departmentId               String  @id @map("department_id") @db.VarChar(32)
+  departmentName             String  @map("department_name")
+  idTelegramSupplyDepartment String? @map("id_telegram_supply_department")
+  idTelegramPrz              String? @map("id_telegram_prz")
+  idTelegramDirector         String? @map("id_telegram_director")
+  idTelegramSupplyManager    String? @map("id_telegram_supply_manager")
+
+  department Department @relation(fields: [departmentId], references: [id])
 
   @@map("settings_department")
 }
 
 model Shift {
-  id                   String          @id @unique @db.VarChar(32)
-  staffId              String          @db.VarChar(32)
-  clockInAtLocal       DateTime
-  clockOutAtLocal      DateTime?
-  staffPositionId      String          @db.VarChar(32)
+  id                   String    @id @unique @db.VarChar(32)
+  staffId              String    @db.VarChar(32)
+  clockInAtLocal       DateTime // ISO 8601 (локальное время начала)
+  clockOutAtLocal      DateTime? // ISO 8601 (локальное время окончания)
+  staffPositionId      String    @db.VarChar(32)
   staffPositionName    String
   staffTypeName        StaffType
-  scheduleId           String?         @db.VarChar(32)
-  seniority            Int
-  deliveredOrdersCount Int             @default(0)
-  totalTripsDistance   Decimal
-  totalTripsCount      Int             @default(0)
-  dayShiftMinutes      Int
-  nightShiftMinutes    Int
-  holidayMinutes       Int
-  lastModifiedAt       DateTime
-  lastModifiedByUserId String          @db.VarChar(32)
+  scheduleId           String?   @db.VarChar(32) // null для незапланированных смен
+  seniority            Int // стаж в месяцах
+  deliveredOrdersCount Int       @default(0) // >= 0
+  totalTripsDistance   Decimal // расстояние в метрах (может быть дробным)
+  totalTripsCount      Int       @default(0) // >= 0
+  dayShiftMinutes      Int // дневные минуты
+  nightShiftMinutes    Int // ночные минуты
+  holidayMinutes       Int // минуты в праздничный день
+  lastModifiedAt       DateTime // UTC
+  lastModifiedByUserId String    @db.VarChar(32)
   employmentTypeName   String
-  employmentTypeId     String          @db.VarChar(32)
-  unitId               String          @db.VarChar(32)
+  employmentTypeId     String    @db.VarChar(32)
+  unitId               String    @db.VarChar(32)
   unitName             String
-  couriersOrders       CouriersOrder[]
-  shiftUpdates         ShiftUpdate[]
-  schedule             Schedule?       @relation(fields: [scheduleId], references: [id])
-  staff                Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  unit                 Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  schedule       Schedule?       @relation(fields: [scheduleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  shiftUpdates   ShiftUpdate[]
+  unit           Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  couriersOrders CouriersOrder[]
 
   @@map("shifts")
 }
@@ -293,37 +333,40 @@ model Shift {
 model ShiftUpdate {
   id                Int       @id @default(autoincrement())
   shiftId           String    @db.VarChar(32)
-  clockIn           DateTime
-  clockOut          DateTime
+  clockIn           DateTime // ISO 8601
+  clockOut          DateTime // ISO 8601
   staffPositionId   String    @db.VarChar(32)
   staffPositionName String
   staffTypeName     StaffType
-  lastModifiedAt    DateTime
-  staffShift        Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  lastModifiedAt    DateTime // UTC
+
+  // Связь с основной сменой
+  staffShift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("shift_updates")
 }
 
 model Schedule {
-  id                         String    @id @unique @db.VarChar(32)
-  scheduledShiftStartAtLocal DateTime
-  scheduledShiftEndAtLocal   DateTime
-  workStationId              String?   @db.VarChar(32)
-  workStationName            String?
-  workSubStationName         String?
-  staffPositionId            String?   @db.VarChar(32)
-  staffId                    String    @db.VarChar(32)
-  staffPositionName          String?
-  staffShiftPositionId       String?   @db.VarChar(32)
-  staffShiftPositionName     String?
-  staffTypeName              StaffType
-  unitId                     String    @db.VarChar(32)
-  unitName                   String
-  modifiedAtUtc              DateTime?
-  modifiedByUserId           String?   @db.VarChar(32)
-  staff                      Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  unit                       Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  shifts                     Shift[]
+  id                         String    @id @unique @db.VarChar(32) // UUID смены (32 символа)
+  scheduledShiftStartAtLocal DateTime // Начало смены (ISO 8601)
+  scheduledShiftEndAtLocal   DateTime // Конец смены (ISO 8601)
+  workStationId              String?   @db.VarChar(32) // UUID станции (32 символа)
+  workStationName            String? // Название станции (Кухня, Касса...)
+  workSubStationName         String? // Подстанция (Холодный цех...)
+  staffPositionId            String?   @db.VarChar(32) // UUID должности (32 символа)
+  staffId                    String    @db.VarChar(32) // UUID сотрудника (32 символа)
+  staffPositionName          String? // Текущая должность
+  staffShiftPositionId       String?   @db.VarChar(32) // UUID должности на смене
+  staffShiftPositionName     String? // Должность на смене
+  staffTypeName              StaffType // Тип сотрудника (Operator, KitchenMember...)
+  unitId                     String    @db.VarChar(32) // UUID заведения (32 символа)
+  unitName                   String // Название заведения
+  modifiedAtUtc              DateTime? // Время последнего изменения (ISO 8601)
+  modifiedByUserId           String?   @db.VarChar(32) // UUID редактора (32 символа)
+
+  staff  Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit   Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  shifts Shift[]
 
   @@map("schedules")
 }
@@ -352,137 +395,78 @@ model PremiumKind {
   premiumTypeId         Int
   code                  String                @unique
   name                  String
-  dailyPremiumSummaries PremiumDailySummary[]
-  type                  PremiumType           @relation(fields: [premiumTypeId], references: [id], onDelete: Cascade)
+  type                  PremiumType           @relation(fields: [premiumTypeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   rules                 PremiumRule[]
+  dailyPremiumSummaries PremiumDailySummary[]
 
   @@map("premium_kinds")
 }
 
 model PremiumRule {
-  id                   Int                   @id @default(autoincrement())
-  name                 String                @db.VarChar(100)
-  unitId               String                @db.VarChar(32)
+  id                   Int        @id @default(autoincrement())
+  name                 String?    @db.VarChar(100) // Макс. 100 символов
   premiumTypeId        Int
   premiumKindId        Int
   staffTypes           StaffType
-  amount               Decimal               @db.Decimal(10, 2)
-  startDate            DateTime?             @db.Date
-  endDate              DateTime?             @db.Date
-  daysOfWeek           Int[]                 @db.SmallInt
-  timeStart            DateTime?             @db.Time(6)
-  timeEnd              DateTime?             @db.Time(6)
-  maxDuration          Int?                  @default(150)
-  excludedDays         DateTime[]            @db.Date
-  temperature          Decimal?              @db.Decimal(5, 2)
-  isActive             Boolean               @default(true)
-  sendPremiumsToDodoIS Boolean               @default(false)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @default(now())
-  applications         PremiumApplication[]
-  dailySummary         PremiumDailySummary[]
-  kind                 PremiumKind           @relation(fields: [premiumKindId], references: [id])
-  type                 PremiumType           @relation(fields: [premiumTypeId], references: [id])
-  unit                 Unit                  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  amount               Decimal    @db.Decimal(10, 2)
+  startDate            DateTime?  @db.Date // Время начала (опц.)
+  endDate              DateTime?  @db.Date // Время окончания (опц.)
+  daysOfWeek           Int[]      @db.SmallInt // Дни недели [1-7] (опц.)
+  timeStart            DateTime?  @db.Time // Время начала действия (ЧЧ:ММ, напр. "07:00")
+  timeEnd              DateTime?  @db.Time // Время окончания действия (ЧЧ:ММ, напр. "10:00")
+  maxDuration          Int?       @default(150) // ("Макс. длительность в минутах")
+  excludedDays         DateTime[] @db.Date // исключаем даты
+  temperature          Decimal?   @db.Decimal(5, 2) // Темп. порог (опц.)
+  isActive             Boolean    @default(true) // Активен (по умолчанию true)
+  sendPremiumsToDodoIS Boolean    @default(false) //отправляем доплаты в DodoIS
+  createdAt            DateTime   @default(now()) // Создано (с TZ)
+  updatedAt            DateTime   @default(now()) // Обновлено (с TZ)
 
-  @@unique([unitId, premiumTypeId, premiumKindId])
+  type         PremiumType           @relation(fields: [premiumTypeId], references: [id]) // Связь с типами
+  kind         PremiumKind           @relation(fields: [premiumKindId], references: [id]) // Связь с видами
+  ruleUnits    PremiumRuleUnit[] // Связь с заведениями через промежуточную таблицу
+  applications PremiumApplication[]
+  dailySummary PremiumDailySummary[]
+
+  @@unique([premiumTypeId, premiumKindId])
   @@map("premium_rules")
+}
+
+model PremiumRuleUnit {
+  premiumRuleId Int
+  unitId        String @db.VarChar(32)
+
+  premiumRule PremiumRule @relation(fields: [premiumRuleId], references: [id], onDelete: Cascade)
+  unit        Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@id([premiumRuleId, unitId])
+  @@map("premium_rule_units")
 }
 
 model PremiumApplication {
   id          Int                  @id @default(autoincrement())
-  premiumId   Int
-  staffId     String               @db.VarChar(32)
-  sourceId    String               @unique @db.VarChar(32)
-  sourceType  SourceType
-  amount      Decimal              @db.Decimal(10, 2)
+  premiumId   Int // Ссылка на правило доплаты
+  staffId     String               @db.VarChar(32) // ID сотрудника
+  sourceId    String               @unique() @db.VarChar(32) // ID смены или заказа
+  sourceType  SourceType // "SHIFT" или "ORDER"
+  amount      Decimal              @db.Decimal(10, 2) // Сумма доплаты
   namePremium String
   datePremium DateTime
-  isSent      PremiumAppliedStatus @default(PENDING)
-  sentAt      DateTime?
-  createdAt   DateTime             @default(now())
-  premium     PremiumRule          @relation(fields: [premiumId], references: [id], onDelete: NoAction)
-  staff       Staff                @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  isSent      PremiumAppliedStatus @default(PENDING) // Отправлена в Dodo IS
+  sentAt      DateTime? // Дата отправки
+  createdAt   DateTime             @default(now()) // Дата создания записи
+
+  premium PremiumRule @relation(fields: [premiumId], references: [id], onDelete: NoAction)
+  staff   Staff       @relation(fields: [staffId], references: [id], onDelete: NoAction)
 
   @@unique([premiumId, sourceId])
   @@map("premium_applied")
 }
 
-model PremiumDailySummary {
-  id          Int                  @id @default(autoincrement())
-  staffId     String               @db.VarChar(32)
-  date        DateTime             @db.Date
-  totalAmount Decimal              @db.Decimal(10, 2)
-  sourceIds   String[]
-  status      PremiumAppliedStatus @default(PENDING)
-  sentAt      DateTime?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @default(now())
-  kindId      Int
-  ruleId      Int
-  kind        PremiumKind          @relation(fields: [kindId], references: [id])
-  rule        PremiumRule          @relation(fields: [ruleId], references: [id])
-  staff       Staff                @relation(fields: [staffId], references: [id])
-
-  @@unique([staffId, kindId, date])
-  @@map("premium_daily_summaries")
-}
-
-model CouriersOrder {
-  id                          String                @id @db.VarChar(32)
-  orderNumber                 String
-  courierStaffId              String                @db.VarChar(32)
-  unitId                      String                @db.VarChar(32)
-  unitName                    String
-  staffShiftId                String?               @db.VarChar(32)
-  handedOverToDeliveryAt      DateTime
-  predictedDeliveryTime       Int
-  deliveryTime                Int
-  orderFulfilmentFlagAt       DateTime?
-  isFalseDelivery             Boolean
-  deliveryTransportName       DeliveryTransportName
-  tripOrdersCount             Int
-  heatedShelfTime             Int
-  orderAssemblyAvgTime        Int
-  isProblematicDelivery       Boolean
-  problematicDeliveryReason   String
-  wasLateDeliveryVoucherGiven Boolean
-  sectorId                    String?               @db.VarChar(32)
-  sectorName                  String?
-  numberOfCouriersInQueue     Int
-  handedOverToDeliveryAtLocal DateTime
-  orderFulfilmentFlagAtLocal  DateTime?
-  staff                       Staff                 @relation(fields: [courierStaffId], references: [id], onDelete: Cascade)
-  shift                       Shift?                @relation(fields: [staffShiftId], references: [id], onDelete: Cascade)
-  unit                        Unit                  @relation(fields: [unitId], references: [id], onDelete: Cascade)
-
-  @@map("couriers_orders")
-}
-
-enum Sex {
-  Unknown
-  Male
-  Female
-}
-
-enum StaffType {
-  Operator
-  KitchenMember
-  Courier
-  Cashier
-  PersonalManager
-}
-
-enum Status {
-  Active
-  Dismissed
-  Suspended
-}
-
 enum PremiumAppliedStatus {
-  PENDING
-  SENT
-  ERROR
+  PENDING // Ожидание
+  SENT // Отправлено
+  ERROR // Ошибка
 }
 
 enum SourceType {
@@ -490,8 +474,73 @@ enum SourceType {
   ORDER
 }
 
+model PremiumDailySummary {
+  id          Int                  @id @default(autoincrement())
+  staffId     String               @db.VarChar(32)
+  ruleId      Int // Ссылка на правило доплаты
+  kindId      Int
+  date        DateTime             @db.Date
+  totalAmount Decimal              @db.Decimal(10, 2)
+  sourceIds   String[]
+  status      PremiumAppliedStatus @default(PENDING)
+  sentAt      DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @default(now())
+
+  // Связи
+  staff Staff       @relation(fields: [staffId], references: [id])
+  kind  PremiumKind @relation(fields: [kindId], references: [id])
+  rule  PremiumRule @relation(fields: [ruleId], references: [id])
+
+  @@unique([staffId, kindId, date])
+  @@map("premium_daily_summaries")
+}
+
+model CouriersOrder {
+  id                          String                @id @db.VarChar(32)
+  orderNumber                 String // Номер заказа (пример: 1‑3)
+  courierStaffId              String                @db.VarChar(32)
+  unitId                      String                @db.VarChar(32)
+  unitName                    String // Название заведения
+  staffShiftId                String?               @db.VarChar(32)
+  handedOverToDeliveryAt      DateTime // Время отметки отправки в доставку UTC
+  predictedDeliveryTime       Int // Прогнозное время доставки в секундах
+  deliveryTime                Int // Фактическое время доставки в секундах
+  orderFulfilmentFlagAt       DateTime? // Время отметки успешной доставки UTC
+  isFalseDelivery             Boolean // Признак некорректной доставки
+  deliveryTransportName       DeliveryTransportName // Вид транспорта: Vehicle, OnFoot, Bicycle
+  tripOrdersCount             Int // Количество заказов в поездке
+  heatedShelfTime             Int // Время ожидания на тепловой полке (сек)
+  orderAssemblyAvgTime        Int // Среднее время сборки заказа (сек)
+  isProblematicDelivery       Boolean // Признак проблемной доставки
+  problematicDeliveryReason   String // Причина проблемной доставки
+  wasLateDeliveryVoucherGiven Boolean // Выдан ли сертификат за опоздание
+  sectorId                    String?               @db.VarChar(32)
+  sectorName                  String? // Название сектора или null
+  numberOfCouriersInQueue     Int // Количество курьеров в очереди
+  handedOverToDeliveryAtLocal DateTime // Определяется на основании таймзоны пиццерии при загрузке
+  orderFulfilmentFlagAtLocal  DateTime? // Определяется на основании таймзоны пиццерии при загрузке
+
+  staff Staff  @relation(fields: [courierStaffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit  Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  shift Shift? @relation(fields: [staffShiftId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("couriers_orders")
+}
+
 enum DeliveryTransportName {
   Vehicle
   OnFoot
   Bicycle
+}
+
+model StaffMax {
+  id      Int     @id @default(autoincrement())
+  staffId String? @unique @db.VarChar(32)
+  idMax   Int
+
+  staff Staff? @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([staffId])
+  @@map("staff_max")
 }

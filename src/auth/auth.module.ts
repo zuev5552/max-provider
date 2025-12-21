@@ -5,6 +5,7 @@ import { PhoneValidationService } from './phone.validation.service';
 import { IdMaxService } from './idmax.service';
 import { CodeGeneratorService } from './code.generator.service';
 import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [],
@@ -14,8 +15,9 @@ import { AuthService } from './auth.service';
     PhoneValidationService,
     IdMaxService,
     CodeGeneratorService,
-    PrismaService, // или импортируйте из общего модуля
+    PrismaService,
   ],
+  controllers: [AuthController], // Добавляем контроллеры
   exports: [AuthService],
 })
 export class AuthModule {}

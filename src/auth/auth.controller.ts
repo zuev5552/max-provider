@@ -9,7 +9,6 @@ export class AuthController {
 
 
   // Метод для подключения диалога к боту
-  // Вызывается извне (например, в SupplyBotService)
   setupBotDialogue(bot: Bot): void {
     this.authService.setupAuthDialogue(bot);
   }

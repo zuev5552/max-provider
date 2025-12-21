@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class IdMaxService {
   private readonly logger = new Logger(IdMaxService.name);
 
-  async hasIdMax(staffId: number): Promise<boolean> {
+  async hasIdMax(staffId: string): Promise<boolean> {
     try {
       const record = await this.prisma.staffMax.findUnique({ where: { staffId } });
       return !!record;
@@ -15,7 +15,7 @@ export class IdMaxService {
     }
   }
 
-  async linkIdMax(staffId: number, idMax: number): Promise<boolean> {
+  async linkIdMax(staffId: string, idMax: number): Promise<boolean> {
     try {
       await this.prisma.staffMax.create({ data: { staffId, idMax } });
       return true;
