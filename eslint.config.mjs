@@ -33,6 +33,7 @@ export default [
 
     rules: {
       ...prettierPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-floating-promises': 'error',
       'perfectionist/sort-named-exports': ['warn', { type: 'alphabetical', order: 'asc' }],
       'perfectionist/sort-named-imports': ['warn', { type: 'alphabetical', order: 'asc' }],
       'perfectionist/sort-imports': [

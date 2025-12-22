@@ -43,7 +43,10 @@ export class SupplyBotService {
       throw new Error('Token SUPPLY_BOT_TOKEN must be provided');
     }
     this.bot = new Bot(env.SUPPLY_BOT_TOKEN);
+
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.setupCommands();
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.eventListener();
   }
   /**
@@ -121,6 +124,7 @@ export class SupplyBotService {
       this.bot.command('faq', async (ctx: Context) => await ctx.reply(faq(), { format: 'html' }));
 
       // запуск бота
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.bot.start();
       this.logger.log('SupplyBot  инициализирован и запущен');
     } catch (error) {
