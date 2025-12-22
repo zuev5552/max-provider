@@ -33,10 +33,10 @@ export default [
 
     rules: {
       ...prettierPlugin.configs.recommended.rules,
-      'perfectionist/sort-named-exports': ['error', { type: 'alphabetical', order: 'asc' }],
-      'perfectionist/sort-named-imports': ['error', { type: 'alphabetical', order: 'asc' }],
+      'perfectionist/sort-named-exports': ['warn', { type: 'alphabetical', order: 'asc' }],
+      'perfectionist/sort-named-imports': ['warn', { type: 'alphabetical', order: 'asc' }],
       'perfectionist/sort-imports': [
-        'error',
+        'warn',
         {
           type: 'alphabetical',
           groups: [
@@ -45,9 +45,9 @@ export default [
           ],
         },
       ],
-      'perfectionist/sort-union-types': ['error', { type: 'alphabetical', order: 'asc' }],
+      'perfectionist/sort-union-types': ['warn', { type: 'alphabetical', order: 'asc' }],
       'perfectionist/sort-classes': [
-        'error',
+        'warn',
         {
           type: 'alphabetical',
           order: 'asc',
@@ -56,13 +56,15 @@ export default [
             'static-property',
             'property',
             'private-property',
+            'protected-property',
             'constructor',
             'static-method',
             'get-method',
             'set-method',
             'method',
+            'async-method',
             'private-method',
-            'static-private-method',
+            'protected-method',
             'unknown',
           ],
         },

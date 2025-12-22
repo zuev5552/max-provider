@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
 import { Staff } from '@prisma/client'; // Импортируем полный тип Staff
+
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * Сервис для валидации телефонных номеров и поиска сотрудников по номеру телефона.
@@ -40,7 +41,7 @@ export class PhoneValidationService {
     return /^\+[1-9]\d{6,14}$/.test(phone.trim());
   }
 
-    /**
+  /**
    * Ищет сотрудников по номеру телефона в базе данных.
    *
    * Выполняет запрос к таблице staff для поиска записей:

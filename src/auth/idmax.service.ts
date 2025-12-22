@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { PrismaService } from '../../prisma/prisma.service';
 
 /**
@@ -16,6 +17,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 @Injectable()
 export class IdMaxService {
   private readonly logger = new Logger(IdMaxService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Проверяет, существует ли привязка id_max для указанного сотрудника.
@@ -45,7 +48,7 @@ export class IdMaxService {
     }
   }
 
-    /**
+  /**
    * Создаёт привязку id_max к указанному сотруднику.
    *
    * Добавляет новую запись в таблицу staffMax с указанными staffId и idMax.
@@ -73,6 +76,4 @@ export class IdMaxService {
       return false;
     }
   }
-
-  constructor(private readonly prisma: PrismaService) {}
 }

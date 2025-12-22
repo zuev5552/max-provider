@@ -1,4 +1,3 @@
-
 export function start_bot() {
   return `
 Привет я бот по сырью. 

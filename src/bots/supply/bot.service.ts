@@ -1,23 +1,23 @@
-import { Bot, Context, Keyboard} from '@maxhub/max-bot-api';
+import { Bot, Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { PrismaService } from '../../../prisma/prisma.service';
 import { env } from '../../config/env';
 import { commandsList } from './commands/commandsList';
 import { faq } from './commands/faq';
 import { start_bot } from './commands/start';
 import { AuthService } from '@/auth/auth.service';
-import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * Сервис для работы с ботом SupplyBot.
- * 
+ *
  * Обеспечивает:
  * - инициализацию бота с токеном из окружения;
  * - установку команд бота;
  * - обработку событий (старт бота, входящие сообщения);
  * - проверку авторизации пользователей;
  * - отправку сообщений пользователям и в чаты.
- * 
+ *
  * @Injectable
  * @class SupplyBotService
  */
@@ -26,11 +26,11 @@ export class SupplyBotService {
   private bot: Bot;
   private readonly logger = new Logger(SupplyBotService.name);
 
-    /**
+  /**
    * Конструктор сервиса.
-   * 
+   *
    * Инициализирует бота, проверяет наличие токена, настраивает команды и обработчики событий.
-   * 
+   *
    * @param {AuthService} authService - сервис авторизации пользователей
    * @param {PrismaService} prisma - сервис для взаимодействия с базой данных
    */
@@ -46,32 +46,15 @@ export class SupplyBotService {
     this.setupCommands();
     this.eventListener();
   }
-
-  /**
-   * Устанавливает список команд бота в интерфейсе платформы.
-   * 
-   * @private
-   * @async
-   * @returns {Promise<void>}
-   * @throws {Error} При ошибке установки команд
-   */
-  private async setupCommands(): Promise<void> {
-    try {
-      await this.bot.api.setMyCommands(commandsList);
-    } catch (error) {
-      this.logger.error(`Ошибка установки команд бота: ${error.message}`);
-    }
-  }
-
   /**
    * Настраивает обработчики событий бота:
    * - старт бота;
    *  перед проверкой входящих сообщений проверяется авторизация пользователя
    * - входящие сообщения;
    * - команды.
-   * 
+   *
    * Включает проверку авторизации пользователей перед обработкой сообщений.
-   * 
+   *
    * @async
    * @returns {Promise<void>}
    * @throws {Error} При ошибке настройки обработчиков
@@ -87,7 +70,6 @@ export class SupplyBotService {
         });
       });
 
-      
       // Проверяем авторизацию
       this.bot.on('message_created', async (ctx: Context, next) => {
         // 1. Безопасное получение userId с валидацией
@@ -147,8 +129,25 @@ export class SupplyBotService {
   }
 
   /**
+   * Отправляет сообщение в указанный чат.
+   *
+   * @async
+   * @param {number} chatId - ID чата, в который отправляется сообщение
+   * @param {string} text - текст сообщения
+   * @returns {Promise<void>}
+   * @throws {Error} При ошибке отправки сообщения
+   */
+  async sendMessageToChat(chatId: number, text: string): Promise<void> {
+    try {
+      await this.bot.api.sendMessageToChat(chatId, text);
+    } catch (error) {
+      this.logger.error(`Ошибка отправки в чат ${chatId}: ${error.message}`);
+    }
+  }
+
+  /**
    * Отправляет сообщение указанному пользователю.
-   * 
+   *
    * @async
    * @param {number} userId - ID пользователя, которому отправляется сообщение
    * @param {string} text - текст сообщения
@@ -163,20 +162,19 @@ export class SupplyBotService {
     }
   }
 
-    /**
-   * Отправляет сообщение в указанный чат.
-   * 
+  /**
+   * Устанавливает список команд бота в интерфейсе платформы.
+   *
+   * @private
    * @async
-   * @param {number} chatId - ID чата, в который отправляется сообщение
-   * @param {string} text - текст сообщения
    * @returns {Promise<void>}
-   * @throws {Error} При ошибке отправки сообщения
+   * @throws {Error} При ошибке установки команд
    */
-  async sendMessageToChat(chatId: number, text: string): Promise<void> {
+  private async setupCommands(): Promise<void> {
     try {
-      await this.bot.api.sendMessageToChat(chatId, text);
+      await this.bot.api.setMyCommands(commandsList);
     } catch (error) {
-      this.logger.error(`Ошибка отправки в чат ${chatId}: ${error.message}`);
+      this.logger.error(`Ошибка установки команд бота: ${error.message}`);
     }
   }
 }

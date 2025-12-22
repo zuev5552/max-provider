@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { AuthSessionDto } from './dtos/auth.session.dto';
 
 /**
@@ -50,7 +51,20 @@ export class SessionManagerService {
     });
   }
 
-    /**
+  /**
+   * Удаляет сессию аутентификации для указанного чата.
+   *
+   * @param {number} chatId - идентификатор чата, для которого удаляется сессия
+   * @returns {void}
+   *
+   * @example
+   * sessionManagerService.delete(12345);
+   */
+  delete(chatId: number): void {
+    this.sessions.delete(chatId);
+  }
+
+  /**
    * Получает сессию аутентификации по идентификатору чата.
    *
    * @param {number} chatId - идентификатор чата
@@ -67,20 +81,7 @@ export class SessionManagerService {
     return this.sessions.get(chatId);
   }
 
-    /**
-   * Удаляет сессию аутентификации для указанного чата.
-   *
-   * @param {number} chatId - идентификатор чата, для которого удаляется сессия
-   * @returns {void}
-   *
-   * @example
-   * sessionManagerService.delete(12345);
-   */
-  delete(chatId: number): void {
-    this.sessions.delete(chatId);
-  }
-
-    /**
+  /**
    * Обновляет поля существующей сессии аутентификации.
    *
    * Применяет частичное обновление (Partial) к объекту сессии.

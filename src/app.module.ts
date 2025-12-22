@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { SupplyBotModule } from './bots/supply/bot.module';
-import { PrismaModule } from '../prisma/prisma.module';
 import { SMSRuModule } from 'node-sms-ru/nestjs';
 
+import { PrismaModule } from '../prisma/prisma.module';
+import { SupplyBotModule } from './bots/supply/bot.module';
 import { env } from './config/env';
 
 /**

@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { Bot, Context } from '@maxhub/max-bot-api';
-import { SessionManagerService } from './session.manager.service';
-import { PhoneValidationService } from '../utils/phone.validation.service';
-import { IdMaxService } from './idmax.service';
-import { CodeGeneratorService } from '../utils/code.generator.service';
+import { Injectable, Logger } from '@nestjs/common';
 import { SMSRu } from 'node-sms-ru';
 
 import { env } from '../config/env';
+import { CodeGeneratorService } from '../utils/code.generator.service';
+import { PhoneValidationService } from '../utils/phone.validation.service';
+import { IdMaxService } from './idmax.service';
+import { SessionManagerService } from './session.manager.service';
 
 /**
  * Сервис аутентификации пользователей через мессенджер.
@@ -26,7 +26,6 @@ import { env } from '../config/env';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-
   /**
    * Время жизни сессии аутентификации (в мс), задаётся из переменных окружения.
    * @private
@@ -53,6 +52,22 @@ export class AuthService {
   ) {}
 
   /**
+   * Настраивает обработчики событий бота для диалога аутентификации.
+   *
+   * Регистрирует:
+   * - действие по кнопке 'auth_start';
+   * - команду '/auth_start';
+   * - обработчик входящих сообщений.
+   * @returns {void}
+   */
+  setupAuthDialogue(bot: Bot): void {
+    bot.action('auth_start', async (ctx: Context) => this.handleAuthStart(ctx));
+    bot.command('auth_start', async (ctx: Context) => this.handleAuthStart(ctx));
+
+    bot.on('message_created', async (ctx: Context, next) => this.handleMessage(ctx, next));
+  }
+
+  /**
    * Подключает бота к системе аутентификации.
    *
    * @param {Bot} bot - экземпляр бота для интеграции с системой аутентификации
@@ -63,34 +78,16 @@ export class AuthService {
   }
 
   /**
-   * Настраивает обработчики событий бота для диалога аутентификации.
-   *
-   * Регистрирует:
-   * - действие по кнопке 'auth_start';
-   * - команду '/auth_start';
-   * - обработчик входящих сообщений.
-   *
-   * @param {Bot} bot - экземпляр бота, для которого настраивается диалог
-   * @returns {void}
-   */
-  setupAuthDialogue(bot: Bot): void {
-    bot.action('auth_start', async (ctx: Context) => this.handleAuthStart(ctx, bot));
-    bot.command('auth_start', async (ctx: Context) => this.handleAuthStart(ctx, bot));
-
-    bot.on('message_created', async (ctx: Context, next) => this.handleMessage(ctx, next));
-  }
-
-  /**
    * Обрабатывает начало процесса аутентификации.
    *
    * Создаёт новую сессию, запрашивает ввод телефона и устанавливает таймаут.
    *
    * @param {Context} ctx - контекст сообщения от пользователя
-   * @param {Bot} bot - экземпляр бота
+   * @param {Bot} _bot - экземпляр бота
    * @returns {Promise<void>}
    * @private
    */
-  private async handleAuthStart(ctx: Context, bot: Bot): Promise<void> {
+  private async handleAuthStart(ctx: Context): Promise<void> {
     const chatId = ctx.chatId;
     if (chatId == null) {
       await this.safeReply(ctx, 'Не удалось определить чат. Попробуйте снова.');
@@ -100,6 +97,157 @@ export class AuthService {
     this.sessionManager.create(chatId);
     await this.safeReply(ctx, 'Для регистрации в системе введите ваш телефон в формате +79991234567');
     this.logger.log(`[start] Сессия создана для chatId: ${chatId}`);
+    this.setupTimeout(chatId);
+  }
+
+  /**
+   * Обрабатывает ввод кода подтверждения в процессе аутентификации.
+   *
+   * Выполняет следующие действия:
+   * - проверяет существование сессии;
+   * - валидирует формат введённого кода;
+   * - преобразует строку в числовое значение;
+   * - проверяет наличие сопоставленного сотрудника в сессии;
+   * - увеличивает счётчик попыток ввода;
+   * - сверяет введённый код с ожидаемым значением;
+   * - при успешном совпадении привязывает идентификатор пользователя к учётной записи;
+   * - при ошибке ограничивает число попыток (максимум 10);
+   * - отправляет соответствующие уведомления пользователю на каждом этапе.
+   *
+   * @param {Context} ctx - контекст текущего сообщения от пользователя (содержит информацию о чате и отправителе)
+   * @param {number} chatId - уникальный идентификатор чата, в котором происходит аутентификация
+   * @param {string} inputText - текст, введённый пользователем (предполагаемый код подтверждения)
+   * @returns {Promise<void>} - асинхронное выполнение без возвращаемого значения
+   * @private
+   *
+   * @example
+   * // Пример вызова метода при получении сообщения с кодом
+   * await this.handleCodeStep(ctx, 12345, '1234');
+   *
+   * @description
+   * Логика работы:
+   * 1. Если сессия отсутствует — игнорирует запрос.
+   * 2. Если код не соответствует формату (не 4 цифры) — просит ввести корректный код.
+   * 3. Если не найден сопоставленный сотрудник — сообщает об ошибке и удаляет сессию.
+   * 4. При совпадении кода с ожидаемым:
+   *    - привязывает ID пользователя к учётной записи;
+   *    - отправляет сообщение об успешном завершении;
+   *    - удаляет сессию.
+   * 5. При несовпадении кода:
+   *    - увеличивает счётчик попыток;
+   *    - если попыток > 10 — отменяет регистрацию;
+   *    - иначе — сообщает о неверном коде и оставшихся попытках.
+   */
+  private async handleCodeStep(ctx: Context, chatId: number, inputText: string): Promise<void> {
+    const session = this.sessionManager.get(chatId);
+    if (!session) {
+      return; // сессия уже удалена — игнорируем
+    }
+
+    if (!this.codeGenerator.isValidCodeInput(inputText)) {
+      await this.safeReply(ctx, 'Введите 4 цифры кода');
+      return;
+    }
+
+    const code = parseInt(inputText, 10);
+    if (isNaN(code)) {
+      await this.safeReply(ctx, 'Ошибка обработки кода');
+      return;
+    }
+
+    if (!session.matchedStaff) {
+      await this.safeReply(ctx, 'Произошла ошибка: не найден сотрудник. Начните заново.');
+      this.sessionManager.delete(chatId);
+      this.logger.error(`[handleCodeStep] matchedStaff отсутствует для chatId: ${chatId}`);
+      return;
+    }
+    // Увеличиваем счётчик попыток
+    const attemptsCount = (session.attemptsCount ?? 0) + 1;
+    const userId = ctx.message?.sender?.user_id;
+
+    if (userId && code === session.code) {
+      const success = await this.idMaxService.linkIdMax(session.matchedStaff.id, userId);
+      if (success) {
+        await this.safeReply(ctx, `Успешно! Номер ${session.phone} зарегистрирован.`);
+        this.sessionManager.delete(chatId);
+        this.logger.log(`[success] Регистрация завершена для chatId: ${chatId}, staffId: ${session.matchedStaff.id}`);
+      } else {
+        await this.safeReply(ctx, 'Произошла ошибка при сохранении данных. Попробуйте позже.');
+        this.sessionManager.delete(chatId);
+      }
+    } else {
+      this.sessionManager.update(chatId, { attemptsCount });
+      this.setupTimeout(chatId);
+      if (attemptsCount >= 10) {
+        await this.safeReply(ctx, 'Вы использовали все 10 попыток. Регистрация отменена. Начните заново с /auth_start');
+        this.sessionManager.delete(chatId);
+        this.logger.log(`[failed] Исчерпаны попытки для chatId: ${chatId}`);
+      } else {
+        const remaining = 10 - attemptsCount;
+        await this.safeReply(ctx, `Неверный код. Осталось попыток: ${remaining}. Введите 4 цифры.`);
+        this.logger.log(`[attempt_failed] Неверный код для chatId: ${chatId}, попыток использовано: ${attemptsCount}`);
+      }
+    }
+  }
+
+  /**
+   * Обрабатывает ввод полного имени (ФИО) - только если дубли телефонов. Если дублей нет то метод не работает.
+   *
+   * Сопоставляет введённое имя с найденными сотрудниками, генерирует код подтверждения.
+   *
+   * @param {Context} ctx - контекст сообщения
+   * @param {number} chatId - идентификатор чата
+   * @param {string} inputText - введённое полное имя
+   * @returns {Promise<void>}
+   * @private
+   */
+  private async handleFullnameStep(ctx: Context, chatId: number, inputText: string): Promise<void> {
+    const fullname = inputText.toLowerCase();
+    const session = this.sessionManager.get(chatId);
+
+    if (!session) {
+      return; // сессия исчезла — выходим
+    }
+
+    const matchedStaff = session.possibleStaff?.find(
+      staff => `${staff.firstName} ${staff.lastName}`.toLowerCase() === fullname,
+    );
+
+    if (!matchedStaff) {
+      await this.safeReply(
+        ctx,
+        'Имя не найдено среди сотрудников с этим телефоном. Проверьте написание и попробуйте снова.',
+      );
+      return;
+    }
+
+    const hasIdMax = await this.idMaxService.hasIdMax(matchedStaff.id);
+    if (hasIdMax) {
+      await this.safeReply(
+        ctx,
+        `Этот номер уже привязан к учётной записи ${matchedStaff.firstName} ${matchedStaff.lastName}.`,
+      );
+      this.sessionManager.delete(chatId);
+      this.logger.log(`[already_registered] Номер привязан к staffId ${matchedStaff.id} для chatId: ${chatId}`);
+      return;
+    }
+
+    this.sessionManager.update(chatId, {
+      fullname: inputText,
+      matchedStaff,
+      step: 'awaiting_code',
+      code: this.codeGenerator.generateCode(),
+    });
+
+    const phone = session.phone;
+    if (!phone) {
+      await this.safeReply(ctx, 'Произошла ошибка: не найден телефон. Начните заново.');
+      this.sessionManager.delete(chatId);
+      return;
+    }
+
+    await this.safeReply(ctx, `Код отправлен на ${phone}. Введите 4 цифры`);
+    this.logger.log(`[awaiting_code] Код сгенерирован для chatId: ${chatId}`);
     this.setupTimeout(chatId);
   }
 
@@ -263,152 +411,27 @@ export class AuthService {
   }
 
   /**
-   * Обрабатывает ввод полного имени (ФИО) - только если дубли телефонов. Если дублей нет то метод не работает.
+   * Безопасная отправка сообщения пользователю.
    *
-   * Сопоставляет введённое имя с найденными сотрудниками, генерирует код подтверждения.
+   * Обрабатывает возможные ошибки при отправке сообщения:
+   * - если основная отправка не удалась, пытается отправить сообщение об ошибке;
+   * - записывает ошибки в лог.
    *
-   * @param {Context} ctx - контекст сообщения
-   * @param {number} chatId - идентификатор чата
-   * @param {string} inputText - введённое полное имя
+   * @param {Context} ctx - контекст сообщения для ответа
+   * @param {string} text - текст отправляемого сообщения
    * @returns {Promise<void>}
    * @private
    */
-  private async handleFullnameStep(ctx: Context, chatId: number, inputText: string): Promise<void> {
-    const fullname = inputText.toLowerCase();
-    const session = this.sessionManager.get(chatId);
-
-    if (!session) {
-      return; // сессия исчезла — выходим
-    }
-
-    const matchedStaff = session.possibleStaff?.find(
-      staff => `${staff.firstName} ${staff.lastName}`.toLowerCase() === fullname,
-    );
-
-    if (!matchedStaff) {
-      await this.safeReply(
-        ctx,
-        'Имя не найдено среди сотрудников с этим телефоном. Проверьте написание и попробуйте снова.',
-      );
-      return;
-    }
-
-    const hasIdMax = await this.idMaxService.hasIdMax(matchedStaff.id);
-    if (hasIdMax) {
-      await this.safeReply(
-        ctx,
-        `Этот номер уже привязан к учётной записи ${matchedStaff.firstName} ${matchedStaff.lastName}.`,
-      );
-      this.sessionManager.delete(chatId);
-      this.logger.log(`[already_registered] Номер привязан к staffId ${matchedStaff.id} для chatId: ${chatId}`);
-      return;
-    }
-
-    this.sessionManager.update(chatId, {
-      fullname: inputText,
-      matchedStaff,
-      step: 'awaiting_code',
-      code: this.codeGenerator.generateCode(),
-    });
-
-    const phone = session.phone;
-    if (!phone) {
-      await this.safeReply(ctx, 'Произошла ошибка: не найден телефон. Начните заново.');
-      this.sessionManager.delete(chatId);
-      return;
-    }
-
-    await this.safeReply(ctx, `Код отправлен на ${phone}. Введите 4 цифры`);
-    this.logger.log(`[awaiting_code] Код сгенерирован для chatId: ${chatId}`);
-    this.setupTimeout(chatId);
-  }
-
-  /**
-   * Обрабатывает ввод кода подтверждения в процессе аутентификации.
-   *
-   * Выполняет следующие действия:
-   * - проверяет существование сессии;
-   * - валидирует формат введённого кода;
-   * - преобразует строку в числовое значение;
-   * - проверяет наличие сопоставленного сотрудника в сессии;
-   * - увеличивает счётчик попыток ввода;
-   * - сверяет введённый код с ожидаемым значением;
-   * - при успешном совпадении привязывает идентификатор пользователя к учётной записи;
-   * - при ошибке ограничивает число попыток (максимум 10);
-   * - отправляет соответствующие уведомления пользователю на каждом этапе.
-   *
-   * @param {Context} ctx - контекст текущего сообщения от пользователя (содержит информацию о чате и отправителе)
-   * @param {number} chatId - уникальный идентификатор чата, в котором происходит аутентификация
-   * @param {string} inputText - текст, введённый пользователем (предполагаемый код подтверждения)
-   * @returns {Promise<void>} - асинхронное выполнение без возвращаемого значения
-   * @private
-   *
-   * @example
-   * // Пример вызова метода при получении сообщения с кодом
-   * await this.handleCodeStep(ctx, 12345, '1234');
-   *
-   * @description
-   * Логика работы:
-   * 1. Если сессия отсутствует — игнорирует запрос.
-   * 2. Если код не соответствует формату (не 4 цифры) — просит ввести корректный код.
-   * 3. Если не найден сопоставленный сотрудник — сообщает об ошибке и удаляет сессию.
-   * 4. При совпадении кода с ожидаемым:
-   *    - привязывает ID пользователя к учётной записи;
-   *    - отправляет сообщение об успешном завершении;
-   *    - удаляет сессию.
-   * 5. При несовпадении кода:
-   *    - увеличивает счётчик попыток;
-   *    - если попыток > 10 — отменяет регистрацию;
-   *    - иначе — сообщает о неверном коде и оставшихся попытках.
-   */
-  private async handleCodeStep(ctx: Context, chatId: number, inputText: string): Promise<void> {
-    const session = this.sessionManager.get(chatId);
-    if (!session) {
-      return; // сессия уже удалена — игнорируем
-    }
-
-    if (!this.codeGenerator.isValidCodeInput(inputText)) {
-      await this.safeReply(ctx, 'Введите 4 цифры кода');
-      return;
-    }
-
-    const code = parseInt(inputText, 10);
-    if (isNaN(code)) {
-      await this.safeReply(ctx, 'Ошибка обработки кода');
-      return;
-    }
-
-    if (!session.matchedStaff) {
-      await this.safeReply(ctx, 'Произошла ошибка: не найден сотрудник. Начните заново.');
-      this.sessionManager.delete(chatId);
-      this.logger.error(`[handleCodeStep] matchedStaff отсутствует для chatId: ${chatId}`);
-      return;
-    }
-    // Увеличиваем счётчик попыток
-    const attemptsCount = (session.attemptsCount ?? 0) + 1;
-    const userId = ctx.message?.sender?.user_id;
-
-    if (userId && code === session.code) {
-      const success = await this.idMaxService.linkIdMax(session.matchedStaff.id, userId);
-      if (success) {
-        await this.safeReply(ctx, `Успешно! Номер ${session.phone} зарегистрирован.`);
-        this.sessionManager.delete(chatId);
-        this.logger.log(`[success] Регистрация завершена для chatId: ${chatId}, staffId: ${session.matchedStaff.id}`);
-      } else {
-        await this.safeReply(ctx, 'Произошла ошибка при сохранении данных. Попробуйте позже.');
-        this.sessionManager.delete(chatId);
-      }
-    } else {
-      this.sessionManager.update(chatId, { attemptsCount });
-      this.setupTimeout(chatId);
-      if (attemptsCount >= 10) {
-        await this.safeReply(ctx, 'Вы использовали все 10 попыток. Регистрация отменена. Начните заново с /auth_start');
-        this.sessionManager.delete(chatId);
-        this.logger.log(`[failed] Исчерпаны попытки для chatId: ${chatId}`);
-      } else {
-        const remaining = 10 - attemptsCount;
-        await this.safeReply(ctx, `Неверный код. Осталось попыток: ${remaining}. Введите 4 цифры.`);
-        this.logger.log(`[attempt_failed] Неверный код для chatId: ${chatId}, попыток использовано: ${attemptsCount}`);
+  private async safeReply(ctx: Context, text: string): Promise<void> {
+    try {
+      await ctx.reply(text);
+    } catch (error) {
+      this.logger.error(`Ошибка отправки сообщения: ${error.message}`);
+      try {
+        // Попытка отправить сообщение об ошибке
+        await ctx.reply('Произошла ошибка. Попробуйте позже.');
+      } catch (replyError) {
+        this.logger.error(`Не удалось отправить сообщение об ошибке: ${replyError.message}`);
       }
     }
   }
@@ -440,31 +463,5 @@ export class AuthService {
 
     // Сохраняем ID таймера в сессии для возможности отмены
     this.sessionManager.update(chatId, { timeoutId });
-  }
-
-  /**
-   * Безопасная отправка сообщения пользователю.
-   *
-   * Обрабатывает возможные ошибки при отправке сообщения:
-   * - если основная отправка не удалась, пытается отправить сообщение об ошибке;
-   * - записывает ошибки в лог.
-   *
-   * @param {Context} ctx - контекст сообщения для ответа
-   * @param {string} text - текст отправляемого сообщения
-   * @returns {Promise<void>}
-   * @private
-   */
-  private async safeReply(ctx: Context, text: string): Promise<void> {
-    try {
-      await ctx.reply(text);
-    } catch (error) {
-      this.logger.error(`Ошибка отправки сообщения: ${error.message}`);
-      try {
-        // Попытка отправить сообщение об ошибке
-        await ctx.reply('Произошла ошибка. Попробуйте позже.');
-      } catch (replyError) {
-        this.logger.error(`Не удалось отправить сообщение об ошибке: ${replyError.message}`);
-      }
-    }
   }
 }

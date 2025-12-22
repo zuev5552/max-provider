@@ -19,7 +19,6 @@ const envSchema = z.object({
 
   //API смс модуля
   SMS_RU_API_ID: z.string().min(1),
-  
 });
 
 export const env = envSchema.parse(process.env);
