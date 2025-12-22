@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { Staff } from '@prisma/client'; // Импортируем полный тип Staff
 
 /**
@@ -17,6 +17,8 @@ import { Staff } from '@prisma/client'; // Импортируем полный �
 @Injectable()
 export class PhoneValidationService {
   private readonly logger = new Logger(PhoneValidationService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Проверяет, соответствует ли телефонный номер заданному формату.
@@ -71,6 +73,4 @@ export class PhoneValidationService {
       return [];
     }
   }
-
-  constructor(private readonly prisma: PrismaService) {}
 }

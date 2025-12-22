@@ -12,7 +12,9 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 
-/**
+export class CodeGeneratorService {
+  
+  /**
  * Генерирует 4‑значный числовой код подтверждения.
  *
  * Создаёт случайное число в диапазоне от 1000 до 9999 (включительно).
@@ -23,7 +25,6 @@ import { Injectable } from '@nestjs/common';
  * const code = codeGeneratorService.generateCode();
  * console.log(code); // например, 4287
  */
-export class CodeGeneratorService {
   generateCode(): number {
     return Math.floor(1000 + Math.random() * 9000);
   }

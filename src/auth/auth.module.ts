@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionManagerService } from './session.manager.service';
-import { PhoneValidationService } from './phone.validation.service';
+import { PhoneValidationService } from './utils/phone.validation.service';
 import { IdMaxService } from './idmax.service';
-import { CodeGeneratorService } from './code.generator.service';
+import { CodeGeneratorService } from './utils/code.generator.service';
 import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
 
 /**
  * Модуль аутентификации приложения.
@@ -47,24 +46,8 @@ import { AuthController } from './auth.controller';
     PrismaService,
   ],
 
-    /**
-   * Список контроллеров, обрабатывающих HTTP‑запросы.
-   * 
-   * В модуле представлен один контроллер:
-   * - AuthController — обрабатывает маршруты, связанные с аутентификацией.
-   * 
-   * @type {Function[]}
-   */
-  controllers: [AuthController], 
+  controllers: [], 
   
-    /**
-   * Список экспортируемых компонентов.
-   * 
-   * Модуль экспортирует:
-   * - AuthService — чтобы другие модули могли использовать логику аутентификации.
-   * 
-   * @type {Function[]}
-   */
   exports: [AuthService],
 })
 export class AuthModule {}
