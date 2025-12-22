@@ -6,7 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
   id           String   @id @db.VarChar(32)
   name         String
@@ -275,7 +274,8 @@ model InventorySettingsUnit {
   endTimeUtc       DateTime? @db.Time
   selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time
   minRequiredStock Decimal?  @default(50)
-  idTelegramGroup  String?
+  idTelegramGroup  String?   @unique
+  maxIdChat        Int?      @unique
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
