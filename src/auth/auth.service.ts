@@ -5,6 +5,7 @@ import { SMSRu } from 'node-sms-ru';
 import { env } from '../config/env';
 import { CodeGeneratorService } from '../utils/code.generator.service';
 import { PhoneValidationService } from '../utils/phone.validation.service';
+import { safeReply } from '../utils/safe-reply.util';
 import { IdMaxService } from './idmax.service';
 import { SessionManagerService } from './session.manager.service';
 
@@ -62,8 +63,6 @@ export class AuthService {
    */
   setupAuthDialogue(bot: Bot): void {
     bot.action('auth_start', async (ctx: Context) => this.handleAuthStart(ctx));
-    bot.command('auth_start', async (ctx: Context) => this.handleAuthStart(ctx));
-
     bot.on('message_created', async (ctx: Context, next) => this.handleMessage(ctx, next));
   }
 
@@ -90,12 +89,12 @@ export class AuthService {
   private async handleAuthStart(ctx: Context): Promise<void> {
     const chatId = ctx.chatId;
     if (chatId == null) {
-      await this.safeReply(ctx, 'Не удалось определить чат. Попробуйте снова.');
+      await safeReply(ctx, 'Не удалось определить чат. Попробуйте снова.', this.logger);
       return;
     }
 
     this.sessionManager.create(chatId);
-    await this.safeReply(ctx, 'Для регистрации в системе введите ваш телефон в формате +79991234567');
+    await safeReply(ctx, 'Для регистрации в системе введите ваш телефон в формате +79991234567', this.logger);
     this.logger.log(`[start] Сессия создана для chatId: ${chatId}`);
     this.setupTimeout(chatId);
   }
@@ -145,18 +144,18 @@ export class AuthService {
     }
 
     if (!this.codeGenerator.isValidCodeInput(inputText)) {
-      await this.safeReply(ctx, 'Введите 4 цифры кода');
+      await safeReply(ctx, 'Введите 4 цифры кода', this.logger);
       return;
     }
 
     const code = parseInt(inputText, 10);
     if (isNaN(code)) {
-      await this.safeReply(ctx, 'Ошибка обработки кода');
+      await safeReply(ctx, 'Ошибка обработки кода', this.logger);
       return;
     }
 
     if (!session.matchedStaff) {
-      await this.safeReply(ctx, 'Произошла ошибка: не найден сотрудник. Начните заново.');
+      await safeReply(ctx, 'Произошла ошибка: не найден сотрудник. Начните заново.', this.logger);
       this.sessionManager.delete(chatId);
       this.logger.error(`[handleCodeStep] matchedStaff отсутствует для chatId: ${chatId}`);
       return;
@@ -168,23 +167,27 @@ export class AuthService {
     if (userId && code === session.code) {
       const success = await this.idMaxService.linkIdMax(session.matchedStaff.id, userId);
       if (success) {
-        await this.safeReply(ctx, `Успешно! Номер ${session.phone} зарегистрирован.`);
+        await safeReply(ctx, `Успешно! Номер ${session.phone} зарегистрирован.`, this.logger);
         this.sessionManager.delete(chatId);
         this.logger.log(`[success] Регистрация завершена для chatId: ${chatId}, staffId: ${session.matchedStaff.id}`);
       } else {
-        await this.safeReply(ctx, 'Произошла ошибка при сохранении данных. Попробуйте позже.');
+        await safeReply(ctx, 'Произошла ошибка при сохранении данных. Попробуйте позже.', this.logger);
         this.sessionManager.delete(chatId);
       }
     } else {
       this.sessionManager.update(chatId, { attemptsCount });
       this.setupTimeout(chatId);
       if (attemptsCount >= 10) {
-        await this.safeReply(ctx, 'Вы использовали все 10 попыток. Регистрация отменена. Начните заново с /auth_start');
+        await safeReply(
+          ctx,
+          'Вы использовали все 10 попыток. Регистрация отменена. Начните заново с /auth_start',
+          this.logger,
+        );
         this.sessionManager.delete(chatId);
         this.logger.log(`[failed] Исчерпаны попытки для chatId: ${chatId}`);
       } else {
         const remaining = 10 - attemptsCount;
-        await this.safeReply(ctx, `Неверный код. Осталось попыток: ${remaining}. Введите 4 цифры.`);
+        await safeReply(ctx, `Неверный код. Осталось попыток: ${remaining}. Введите 4 цифры.`, this.logger);
         this.logger.log(`[attempt_failed] Неверный код для chatId: ${chatId}, попыток использовано: ${attemptsCount}`);
       }
     }
@@ -214,18 +217,20 @@ export class AuthService {
     );
 
     if (!matchedStaff) {
-      await this.safeReply(
+      await safeReply(
         ctx,
         'Имя не найдено среди сотрудников с этим телефоном. Проверьте написание и попробуйте снова.',
+        this.logger,
       );
       return;
     }
 
     const hasIdMax = await this.idMaxService.hasIdMax(matchedStaff.id);
     if (hasIdMax) {
-      await this.safeReply(
+      await safeReply(
         ctx,
         `Этот номер уже привязан к учётной записи ${matchedStaff.firstName} ${matchedStaff.lastName}.`,
+        this.logger,
       );
       this.sessionManager.delete(chatId);
       this.logger.log(`[already_registered] Номер привязан к staffId ${matchedStaff.id} для chatId: ${chatId}`);
@@ -241,12 +246,12 @@ export class AuthService {
 
     const phone = session.phone;
     if (!phone) {
-      await this.safeReply(ctx, 'Произошла ошибка: не найден телефон. Начните заново.');
+      await safeReply(ctx, 'Произошла ошибка: не найден телефон. Начните заново.', this.logger);
       this.sessionManager.delete(chatId);
       return;
     }
 
-    await this.safeReply(ctx, `Код отправлен на ${phone}. Введите 4 цифры`);
+    await safeReply(ctx, `Код отправлен на ${phone}. Введите 4 цифры`, this.logger);
     this.logger.log(`[awaiting_code] Код сгенерирован для chatId: ${chatId}`);
     this.setupTimeout(chatId);
   }
@@ -298,7 +303,7 @@ export class AuthService {
 
     const inputText = ctx.message?.body?.text?.trim();
     if (!inputText) {
-      await this.safeReply(ctx, 'Пожалуйста, введите номер телефона текстом в формате +79991234567');
+      await safeReply(ctx, 'Пожалуйста, введите номер телефона текстом в формате +79991234567', this.logger);
       return;
     }
 
@@ -315,12 +320,12 @@ export class AuthService {
           break;
         default:
           this.logger.warn(`Неизвестная стадия сессии для chatId ${chatId}: ${session.step}`);
-          await this.safeReply(ctx, 'Произошла ошибка состояния. Начните заново с /auth_start');
+          await safeReply(ctx, 'Произошла ошибка состояния. Начните заново с /auth_start', this.logger);
           this.sessionManager.delete(chatId);
       }
     } catch (error) {
       this.logger.error(`Ошибка обработки сообщения: ${error.message}`);
-      await this.safeReply(ctx, 'Произошла ошибка, попробуйте позже');
+      await safeReply(ctx, 'Произошла ошибка, попробуйте позже', this.logger);
       this.sessionManager.delete(chatId);
     }
   }
@@ -338,14 +343,14 @@ export class AuthService {
    */
   private async handlePhoneStep(ctx: Context, chatId: number, inputText: string): Promise<void> {
     if (!this.phoneValidator.isValidPhone(inputText)) {
-      await this.safeReply(ctx, 'Введите номер в формате +79991234567');
+      await safeReply(ctx, 'Введите номер в формате +79991234567', this.logger);
       return;
     }
 
     const staffList = await this.phoneValidator.findStaffByPhone(inputText.replace('+', ''));
 
     if (staffList.length === 0) {
-      await this.safeReply(ctx, 'Такого телефона нет в базе. Обратитесь к управляющему.');
+      await safeReply(ctx, 'Такого телефона нет в базе. Обратитесь к управляющему.', this.logger);
       this.sessionManager.delete(chatId);
       this.logger.log(`[phone_not_found] Телефон ${inputText} не найден для chatId: ${chatId}`);
       return;
@@ -361,9 +366,10 @@ export class AuthService {
       const hasIdMax = await this.idMaxService.hasIdMax(singleStaff.id);
 
       if (hasIdMax) {
-        await this.safeReply(
+        await safeReply(
           ctx,
           `Этот номер уже привязан к учётной записи ${singleStaff.firstName} ${singleStaff.lastName}.`,
+          this.logger,
         );
         this.sessionManager.delete(chatId);
         this.logger.log(`[already_registered] Номер привязан к staffId ${singleStaff.id} для chatId: ${chatId}`);
@@ -386,54 +392,29 @@ export class AuthService {
         });
 
         if (smsResult.status === 'OK') {
-          await this.safeReply(ctx, `Код отправлен на ${inputText}. Введите 4 цифры. У вас одна попытка.`);
+          await safeReply(ctx, `Код отправлен на ${inputText}. Введите 4 цифры. У вас одна попытка.`, this.logger);
           this.logger.log(`[sms_sent] Код ${String(session?.code)} отправлен на ${inputText} для chatId: ${chatId}`);
         } else {
-          await this.safeReply(ctx, `Не удалось отправить смс на номер  ${inputText}. Попробуйте позже.`);
+          await safeReply(ctx, `Не удалось отправить смс на номер  ${inputText}. Попробуйте позже.`, this.logger);
           this.logger.error(`Не удалось отправить смс на номер  ${inputText}`);
         }
       } catch (error) {
         this.logger.error(`Не удалось отправить SMS: ${error.message}`);
-        await this.safeReply(ctx, 'Не удалось отправить код подтверждения. Попробуйте позже.');
+        await safeReply(ctx, 'Не удалось отправить код подтверждения. Попробуйте позже.', this.logger);
         this.sessionManager.delete(chatId);
       }
     } else {
       this.sessionManager.update(chatId, { step: 'awaiting_fullname' });
       const namesList = staffList.map(s => `${s.firstName} ${s.lastName}`).join(', ');
-      await this.safeReply(
+      await safeReply(
         ctx,
         `Найден(ы) сотрудник(ы): ${namesList}.\nУкажите ваше полное имя (ФИО) точно как в системе.`,
+        this.logger,
       );
       this.logger.log(`[awaiting_fullname] Запрошено ФИО для chatId: ${chatId}`);
     }
 
     this.setupTimeout(chatId);
-  }
-
-  /**
-   * Безопасная отправка сообщения пользователю.
-   *
-   * Обрабатывает возможные ошибки при отправке сообщения:
-   * - если основная отправка не удалась, пытается отправить сообщение об ошибке;
-   * - записывает ошибки в лог.
-   *
-   * @param {Context} ctx - контекст сообщения для ответа
-   * @param {string} text - текст отправляемого сообщения
-   * @returns {Promise<void>}
-   * @private
-   */
-  private async safeReply(ctx: Context, text: string): Promise<void> {
-    try {
-      await ctx.reply(text);
-    } catch (error) {
-      this.logger.error(`Ошибка отправки сообщения: ${error.message}`);
-      try {
-        // Попытка отправить сообщение об ошибке
-        await ctx.reply('Произошла ошибка. Попробуйте позже.');
-      } catch (replyError) {
-        this.logger.error(`Не удалось отправить сообщение об ошибке: ${replyError.message}`);
-      }
-    }
   }
 
   /**
