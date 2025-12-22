@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 model User {
   id           String   @id @db.VarChar(32)
   name         String
@@ -70,19 +71,19 @@ model Unit {
   state    String?
   timezone String?
 
-  type             UnitType          @relation(fields: [typeId], references: [id])
-  unitsRoles       UserUnitRole[]
-  staff            Staff[]
-  subscribes       Subscribe[]
-  departments      UnitDepartment[]
-  inventoryStocks  InventoryStocks[]
-  lowerStocks      LowerStock[]
-  settingsUnit     SettingsUnit?
-  stocksSettings   StocksSettings[]
-  shifts           Shift[]
-  schedules        Schedule[]
-  premiumRuleUnits PremiumRuleUnit[]
-  couriersOrder    CouriersOrder[]
+  type                  UnitType                @relation(fields: [typeId], references: [id])
+  unitsRoles            UserUnitRole[]
+  staff                 Staff[]
+  subscribes            Subscribe[]
+  departments           UnitDepartment[]
+  inventoryStocks       InventoryStocks[]
+  inventoryLowerStocks  InventoryLowerStock[]
+  inventorySettingsUnit InventorySettingsUnit?
+  inventoryItemSettings InventoryItemSettings[]
+  shifts                Shift[]
+  schedules             Schedule[]
+  premiumRuleUnits      PremiumRuleUnit[]
+  couriersOrder         CouriersOrder[]
 
   @@map("units")
 }
@@ -171,9 +172,8 @@ model Department {
   name         String
   franchiseeId String
 
-  units              UnitDepartment[]
-  settingsUnits      SettingsUnit[]
-  settingsDepartment SettingsDepartment?
+  units                       UnitDepartment[]
+  inventorySettingsDepartment InventorySettingsDepartment?
 
   @@map("departments")
 }
@@ -205,17 +205,17 @@ model Subscribe {
 }
 
 model InventoryStocks {
-  id                      String   @db.VarChar(32)
+  id                      String          @db.VarChar(32)
   name                    String
-  unitId                  String   @db.VarChar(32)
-  categoryName            String
+  unitId                  String          @db.VarChar(32)
+  categoryName            CategoryName
   quantity                Decimal
-  measurementUnit         String
+  measurementUnit         MeasurementUnit
   balanceInMoney          Decimal
   currency                String
   avgWeekdayExpense       Decimal
   avgWeekendExpense       Decimal
-  daysUntilBalanceRunsOut Int      @db.Integer
+  daysUntilBalanceRunsOut Int             @db.Integer
   calculatedAt            DateTime
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -224,78 +224,93 @@ model InventoryStocks {
   @@map("inventory_stocks")
 }
 
-model StocksId {
+enum CategoryName {
+  Ingredient
+  SemiFinishedProduct
+  FinishedProduct
+  Packing
+}
+
+enum MeasurementUnit {
+  Quantity
+  Kilogram
+  Liter
+  Meter
+}
+
+model InventoryItem {
   id   String @id @db.VarChar(32)
   name String
 
-  lowerStocks LowerStock[]
+  lowerStocks           InventoryLowerStock[]
+  inventoryItemSettings InventoryItemSettings[]
 
-  @@map("stocks_id")
+  @@map("inventory_items")
 }
 
-model LowerStock {
-  lowerStockId          String    @id @db.Uuid
+model InventoryLowerStock {
+  id                    String    @id @default(uuid()) @db.Uuid
   unitId                String    @db.VarChar(32)
-  stockId               String    @db.VarChar(32)
-  createTimestamp       DateTime  @default(now())
-  updateTimestamp       DateTime?
-  nameReason            String?
+  itemId                String    @db.VarChar(32)
+  createdAt             DateTime  @default(now())
+  resolvedAt            DateTime?
+  reason                String?
   calculatedAt          DateTime
-  userName              String?
-  notifiedDirector      Boolean   @default(false) @map("notified_director")
-  notifiedSupplyManager Boolean   @default(false) @map("notified_supply_manager")
+  resolvedByUserName    String?
+  notifiedDirector      Boolean   @default(false)
+  notifiedSupplyManager Boolean   @default(false)
 
-  unit  Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  stock StocksId @relation(fields: [stockId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([calculatedAt, unitId, stockId], name: "lower_stock_unique")
-  @@map("lower_stock")
+  @@unique([calculatedAt, unitId, itemId], name: "inventory_lower_stock_unique")
+  @@map("inventory_lower_stocks")
 }
 
-model SettingsUnit {
+model InventorySettingsUnit {
   unitId           String    @id @db.VarChar(32)
   unitName         String
-  startTimeUtc     DateTime? @map("start_time_utc") @db.Time
-  selectStartTime  DateTime  @default(dbgenerated("'09:00:00'::time without time zone")) @map("select_start_time") @db.Time
-  endTimeUtc       DateTime? @map("end_time_utc") @db.Time
-  selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @map("select_end_time") @db.Time
-  minRequiredStock Decimal?  @default(50) @map("min_required_stock")
-  idTelegramGroup  String?   @map("id_telegram_group")
-  departmentId     String    @map("department_id") @db.VarChar(32)
+  startTimeUtc     DateTime? @db.Time
+  selectStartTime  DateTime  @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time
+  endTimeUtc       DateTime? @db.Time
+  selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time
+  minRequiredStock Decimal?  @default(50)
+  idTelegramGroup  String?
 
-  unit       Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  department Department @relation(fields: [departmentId], references: [id])
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  @@map("settings_unit")
+  @@map("inventory_settings_units")
 }
 
-model StocksSettings {
-  idStock          String   @map("id_stock") @db.VarChar(32)
+model InventoryItemSettings {
+  itemId           String   @db.VarChar(32)
   name             String
-  unitId           String   @map("unitId") @db.VarChar(32)
-  isNotify         Boolean  @default(true) @map("is_notify")
-  isSentMessage    Boolean  @default(false) @map("is_sent_message")
-  isNotifyPrz      Boolean? @map("is_notify_prz")
-  isSentMessagePrz Boolean  @default(false) @map("is_sent_message_prz")
-  isNotifyDelay    Boolean  @default(false) @map("is_notify_delay")
+  unitId           String   @db.VarChar(32)
+  isNotify         Boolean  @default(true)
+  isSentMessage    Boolean  @default(false)
+  isNotifyPrz      Boolean?
+  isSentMessagePrz Boolean  @default(false)
+  isNotifyDelay    Boolean  @default(false)
+  coefficient      Decimal  @default(1)
 
-  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@id([idStock, unitId])
-  @@map("stocks_settings")
+  @@id([itemId, unitId])
+  @@map("inventory_item_settings")
 }
 
-model SettingsDepartment {
-  departmentId               String  @id @map("department_id") @db.VarChar(32)
-  departmentName             String  @map("department_name")
-  idTelegramSupplyDepartment String? @map("id_telegram_supply_department")
-  idTelegramPrz              String? @map("id_telegram_prz")
-  idTelegramDirector         String? @map("id_telegram_director")
-  idTelegramSupplyManager    String? @map("id_telegram_supply_manager")
+model InventorySettingsDepartment {
+  departmentId               String  @id @db.VarChar(32)
+  departmentName             String
+  idTelegramSupplyDepartment String?
+  idTelegramPrz              String?
+  idTelegramDirector         String?
+  idTelegramSupplyManager    String?
 
-  department Department @relation(fields: [departmentId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@map("settings_department")
+  @@map("inventory_settings_departments")
 }
 
 model Shift {

@@ -6,6 +6,7 @@ import { AuthMiddleware } from './auth.middleware';
 import { commandsList } from './commands/commandsList';
 import { faq } from './commands/faq';
 import { start_bot } from './commands/start';
+import { InitChat } from './init-chat/init-chat.service';
 import { AuthService } from '@/auth/auth.service';
 
 /**
@@ -39,6 +40,7 @@ export class SupplyBotService {
   constructor(
     private readonly authService: AuthService,
     private readonly authVerification: AuthMiddleware,
+    private readonly initChat: InitChat,
   ) {
     if (!env.SUPPLY_BOT_TOKEN) {
       this.logger.error('SUPPLY_BOT_TOKEN не найден в .env. Отправка сообщений будет отключена.');
@@ -76,6 +78,9 @@ export class SupplyBotService {
 
       // Ограничение доступа без авторизации
       this.bot.use(this.authVerification.use.bind(this.authVerification));
+
+      // Инициализация чатов
+      this.initChat.initChatStart(this.bot);
 
       // прослушка команд
       this.bot.command('faq', async (ctx: Context) => await ctx.reply(faq(), { format: 'html' }));

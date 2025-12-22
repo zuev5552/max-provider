@@ -35,11 +35,13 @@ export class AuthMiddleware {
    * @returns {Promise<void>}
    */
   async use(ctx: Context, next: NextFunction): Promise<void> {
+    // console.dir(ctx.message, { deph: null });
+    // console.dir(ctx, { deph: null });
+
     // 1. Безопасное получение userId
     const userId = ctx.message?.sender?.user_id;
     if (!userId) {
-      this.logger.warn('Не удалось определить userId из контекста сообщения');
-      return next();
+      return await next();
     }
 
     try {

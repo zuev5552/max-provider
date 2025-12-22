@@ -39,6 +39,9 @@ const envSchema = z.object({
 
   //API смс модуля
   SMS_RU_API_ID: z.string().min(1),
+
+  // Имена ботов
+  SUPPLY_BOT_NAME: z.string().min(1),
 });
 
 /**
