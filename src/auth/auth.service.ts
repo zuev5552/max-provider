@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Bot, Context } from '@maxhub/max-bot-api';
 import { SessionManagerService } from './session.manager.service';
-import { PhoneValidationService } from './utils/phone.validation.service';
+import { PhoneValidationService } from '../utils/phone.validation.service';
 import { IdMaxService } from './idmax.service';
-import { CodeGeneratorService } from './utils/code.generator.service';
+import { CodeGeneratorService } from '../utils/code.generator.service';
 import { SMSRu } from 'node-sms-ru';
 
 import { env } from '../config/env';

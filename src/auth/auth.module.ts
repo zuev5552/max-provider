@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionManagerService } from './session.manager.service';
-import { PhoneValidationService } from './utils/phone.validation.service';
+import { PhoneValidationService } from '../utils/phone.validation.service';
 import { IdMaxService } from './idmax.service';
-import { CodeGeneratorService } from './utils/code.generator.service';
+import { CodeGeneratorService } from '../utils/code.generator.service';
 import { AuthService } from './auth.service';
 
 /**
@@ -22,8 +22,7 @@ import { AuthService } from './auth.service';
  * @module AuthModule
  */
 @Module({
-  imports: [],
-
+  
     /**
    * Список провайдеров (сервисов), доступных в контексте данного модуля.
    * 
@@ -45,9 +44,6 @@ import { AuthService } from './auth.service';
     CodeGeneratorService,
     PrismaService,
   ],
-
-  controllers: [], 
-  
   exports: [AuthService],
 })
 export class AuthModule {}

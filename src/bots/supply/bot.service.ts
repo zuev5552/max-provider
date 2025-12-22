@@ -1,12 +1,12 @@
 import { Bot, Context, Keyboard} from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { env } from '../config/env';
+import { env } from '../../config/env';
 import { commandsList } from './commands/commandsList';
 import { faq } from './commands/faq';
 import { start_bot } from './commands/start';
 import { AuthService } from '@/auth/auth.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * Сервис для работы с ботом SupplyBot.
