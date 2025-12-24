@@ -72,7 +72,7 @@ export class SupplyBotService {
       this.authService.setupBot(this.bot);
       this.bot.on('bot_started', async ctx => {
         await ctx.reply(start_bot(), {
-          attachments: [Keyboard.inlineKeyboard([[Keyboard.button.callback('Авторизация', 'auth_start')]])],
+          attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact('Авторизация')]])],
         });
       });
 

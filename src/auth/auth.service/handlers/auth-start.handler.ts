@@ -1,4 +1,4 @@
-import { Bot, Context } from '@maxhub/max-bot-api';
+import { Bot, Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { SessionManagerService } from '../session.manager.service';
@@ -7,11 +7,29 @@ import { MESSAGES } from '../utils/messages.constants';
 import { SessionTimeoutUtil } from '../utils/session-timeout.util';
 import { safeReply } from '@/utils/safe-reply.util';
 
+/**
+ * Обработчик запуска процесса аутентификации через контактный номер телефона.
+ *
+ * Отвечает за:
+ * - обработку входящих сообщений с контактными данными;
+ * - создание и обновление сессии аутентификации;
+ * - проверку cooldown между запросами SMS;
+ * - отправку запроса подтверждения номера телефона с клавиатурой выбора;
+ * - запуск таймера сессии.
+ *
+ * @Injectable
+ * @class AuthStartHandler
+ */
 @Injectable()
 export class AuthStartHandler {
   private readonly logger = new Logger(AuthStartHandler.name);
 
-  // Константа для cooldown (30 минут в мс)
+   /**
+   * Время ожидания между повторными запросами SMS.
+   * Установлено в 30 минут .
+   * @private
+   * @constant {number}
+   */
   private readonly SMS_RESEND_COOLDOWN = 30 * 60 * 1000;
 
   constructor(
@@ -19,43 +37,71 @@ export class AuthStartHandler {
     private readonly sessionTimeout: SessionTimeoutUtil,
   ) {}
 
-  setup(bot: Bot): void {
-    bot.action('auth_start', async (ctx: Context) => this.handleAuthStart(ctx));
-  }
+    /**
+   * Настраивает обработчик для события `message_created` бота.
+   * Обрабатывает сообщения, содержащие контактные данные пользователя:
+   * - проверяет наличие существующей сессии;
+   * - обрабатывает cooldown между запросами SMS;
+   * - создаёт новую сессию, если её нет;
+   * - сохраняет номер телефона из контакта в сессию;
+   * - запускает таймер сессии;
+   * - отправляет пользователю запрос на подтверждение номера с клавиатурой выбора.
+   *
+   * @param {Bot} bot — экземпляр бота MaxBot API для регистрации обработчика событий
+   *
+   * @example
+   * const authStartHandler = new AuthStartHandler(sessionManager, sessionTimeout);
+   * authStartHandler.handleAuthStart(bot); // Регистрирует обработчик сообщений для бота
+   *
+   * @returns {void}
+   */
+  handleAuthStart(bot: Bot): void {
+    bot.on('message_created', async (ctx, next) => {
+      if (!ctx.contactInfo) return next();
+      console.log(ctx);
 
-  private async handleAuthStart(ctx: Context): Promise<void> {
-    const chatId = ctx.chatId;
-    if (chatId == null) {
-      await safeReply(ctx, 'Не удалось определить чат. Попробуйте снова.', this.logger);
-      return;
-    }
-
-    const existingSession = this.sessionManager.get(chatId);
-    if (existingSession) {
-      const cooldownHandled = await this.handleCooldown(ctx, existingSession, chatId);
-      if (cooldownHandled) {
-        return;
+      const existingSession = this.sessionManager.get(ctx.chatId);
+      if (existingSession) {
+        const cooldownHandled = await this.handleCooldown(ctx, existingSession, ctx.chatId);
+        if (cooldownHandled) {
+          return;
+        }
       }
-    }
 
-    // Создаём новую сессию (без дополнительных параметров)
-    this.sessionManager.create(chatId);
+      this.sessionManager.create(ctx.chatId);
+      this.sessionManager.update(ctx.chatId, {
+        phone: ctx.contactInfo.tel,
+      });
 
-    await safeReply(ctx, MESSAGES.AUTH_START_INSTRUCTIONS, this.logger);
+      this.logger.log(`[start] Сессия создана для chatId: ${ctx.chatId}`);
 
-    // await ctx.reply('Показать телефон', {
-    //   attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact('контакт')]])],
-    // });
+      // таймер запущен
+      this.sessionTimeout.setupTimeout(ctx.chatId);
 
-    this.logger.log(`[start] Сессия создана для chatId: ${chatId}`);
-
-    // Устанавливаем таймаут для сессии
-    this.sessionTimeout.setupTimeout(chatId);
+      const contactKeyboard = Keyboard.inlineKeyboard([
+        [
+          Keyboard.button.callback('Да', 'contactOk', { intent: 'positive' }),
+          Keyboard.button.callback('Нет', 'contactEr', { intent: 'negative' }),
+        ],
+      ]);
+      return ctx.reply(`Это твой номер телефона: <b>${ctx.contactInfo.tel}</b>?`, {
+        format: 'html',
+        attachments: [contactKeyboard],
+      });
+    });
   }
 
   /**
-   * Обрабатывает ситуацию, когда сессия уже существует и проверяет cooldown
-   * @returns true, если cooldown активен и отправлено сообщение пользователю
+   * Обрабатывает ситуацию, когда сессия уже существует, и проверяет cooldown между запросами SMS.
+   *
+   * Если время с последнего запроса SMS меньше  30 минут’, отправляет пользователю
+   * сообщение с указанием оставшегося времени ожидания.
+   *
+   * @param {Context} ctx — контекст сообщения для отправки ответа пользователю
+   * @param {AuthSession} session — существующая сессия аутентификации
+   * @param {number} chatId — идентификатор чата/пользователя
+   * @returns {Promise<boolean>} `true`, если cooldown активен и сообщение отправлено; `false` в противном случае
+   * @private
    */
   private async handleCooldown(ctx: Context, session: AuthSession, chatId: number): Promise<boolean> {
     const now = Date.now();

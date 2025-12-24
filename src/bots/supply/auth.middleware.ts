@@ -35,7 +35,7 @@ export class AuthMiddleware {
    * @returns {Promise<void>}
    */
   async use(ctx: Context, next: NextFunction): Promise<void> {
-    // console.dir(ctx, { depf: null });
+    console.dir(ctx.contactInfo, { depf: null });
 
     // 1. Безопасное получение userId
     const userId = ctx.message?.sender?.user_id;
@@ -62,7 +62,7 @@ export class AuthMiddleware {
       // 3. Обработка неавторизованного пользователя
       if (!isAuthorized) {
         await ctx.reply('Сервис доступен только для авторизованных пользователей', {
-          attachments: [Keyboard.inlineKeyboard([[Keyboard.button.callback('Авторизация', 'auth_start')]])],
+          attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact('Авторизация')]])],
         });
         return; // Прерываем цепочку
       }

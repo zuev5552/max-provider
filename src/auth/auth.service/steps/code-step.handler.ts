@@ -7,17 +7,65 @@ import { MESSAGES } from '../utils/messages.constants';
 import { CodeGeneratorService } from '@/utils/code.generator.service';
 import { safeReply } from '@/utils/safe-reply.util';
 
+/**
+ * Обработчик шага ввода SMS‑кода в процессе аутентификации.
+ *
+ * Отвечает за:
+ * - проверку формата введённого кода;
+ * - подсчёт количества попыток ввода;
+ * - сравнение введённого кода с сохранённым в сессии;
+ * - ограничение количества попыток (максимум 10);
+ * - привязку ID пользователя к сотруднику при успешном вводе;
+ * - отправку соответствующих сообщений пользователю на каждом этапе.
+ *
+ * @Injectable
+ * @class CodeStepHandler
+ */
 @Injectable()
 export class CodeStepHandler {
   private readonly logger = new Logger(CodeStepHandler.name);
   private readonly MAX_ATTEMPTS = 10;
 
+    /**
+   * Создаёт экземпляр обработчика ввода SMS‑кода.
+   *
+   * @param {SessionManagerService} sessionManager — сервис управления сессиями аутентификации,
+   *   предоставляет доступ к данным сессии пользователя по `chatId`
+   * @param {IdMaxService} idMaxService — сервис для работы с ID пользователей,
+   *   отвечает за привязку ID бота к внутреннему идентификатору сотрудника
+   * @param {CodeGeneratorService} codeGenerator — сервис генерации и валидации SMS‑кодов,
+   *   проверяет корректность введённого пользователем кода
+   */
   constructor(
     private readonly sessionManager: SessionManagerService,
     private readonly idMaxService: IdMaxService,
     private readonly codeGenerator: CodeGeneratorService,
   ) {}
 
+    /**
+   * Обрабатывает ввод SMS‑кода пользователем.
+   * Выполняет следующие шаги:
+   * 1. Получает сессию пользователя по `chatId`.
+   * 2. Проверяет формат введённого кода.
+   * 3. Преобразует текст в число и проверяет на `NaN`.
+   * 4. Проверяет наличие данных о сотруднике (`matchedStaff`) в сессии.
+   * 5. Обновляет счётчик попыток ввода кода.
+   * 6. Проверяет превышение лимита попыток (10).
+   * 7. Сравнивает введённый код с сохранённым в сессии.
+   * 8. При успешном совпадении:
+   *    - привязывает ID пользователя к сотруднику через `idMaxService`;
+   *    - удаляет сессию;
+   *    - отправляет сообщение об успешной авторизации.
+   * 9. При несовпадении кода:
+   *    - сообщает количество оставшихся попыток;
+   *    - логирует ошибку.
+   *
+   * @param {Context} ctx — контекст сообщения, содержащий данные о чате и пользователе
+   * @param {number} chatId — идентификатор чата/пользователя
+   * @param {string} inputText — текст сообщения от пользователя (введённый SMS‑код)
+   *
+   * @returns {Promise<void>} — асинхронное выполнение без возвращаемого значения
+   */
   async handle(ctx: Context, chatId: number, inputText: string): Promise<void> {
     const session = this.sessionManager.get(chatId);
     if (!session) {

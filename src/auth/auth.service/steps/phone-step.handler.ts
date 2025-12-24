@@ -8,6 +8,21 @@ import { SmsSenderUtil } from '../utils/sms-sender.util';
 import { PhoneValidationService } from '@/utils/phone.validation.service';
 import { safeReply } from '@/utils/safe-reply.util';
 
+/**
+ * Обработчик шага ввода и валидации телефонного номера в процессе аутентификации.
+ *
+ * Отвечает за:
+ * - проверку формата введённого номера телефона;
+ * - поиск сотрудников по номеру телефона;
+ * - обработку случаев: номер не найден, сотрудник уже зарегистрирован;
+ * - отправку SMS‑кода подтверждения (если найден один сотрудник);
+ * - запрос ввода ФИО (если найдено несколько сотрудников);
+ * - обновление сессии с данными о возможных сотрудниках или найденном сотруднике;
+ * - обработку ошибок на каждом этапе с отправкой соответствующих сообщений пользователю.
+ *
+ * @Injectable
+ * @class PhoneStepHandler
+ */
 @Injectable()
 export class PhoneStepHandler {
   private readonly logger = new Logger(PhoneStepHandler.name);
@@ -19,13 +34,42 @@ export class PhoneStepHandler {
     private readonly smsSender: SmsSenderUtil,
   ) {}
 
+    /**
+   * Обрабатывает ввод телефонного номера пользователем.
+   * Выполняет следующие шаги:
+   * 1. Проверяет формат номера с помощью `phoneValidator.isValidPhone()`.
+   * 2. Ищет сотрудников по номеру с помощью `phoneValidator.findStaffByPhone()`.
+   * 3. Если номер не найден (`staffList.length === 0`):
+   *    - отправляет сообщение `MESSAGES.PHONE_NOT_FOUND`;
+   *    - удаляет сессию;
+   *    - логирует ошибку.
+   * 4. Сохраняет список возможных сотрудников и номер в сессии.
+   * 5. Если найден ровно один сотрудник:
+   *    - проверяет, зарегистрирован ли он уже (`hasIdMax`);
+   *    - если зарегистрирован, отправляет сообщение о регистрации, удаляет сессию;
+   *    - если не зарегистрирован, отправляет SMS‑код;
+   *    - при успешной отправке: обновляет сессию (`matchedStaff`, `step: 'awaiting_code'`), отправляет сообщение об отправке SMS;
+   *    - при ошибке отправки: отправляет сообщение `MESSAGES.SMS_SEND_ERROR`, удаляет сессию.
+   * 6. Если найдено несколько сотрудников:
+   *    - обновляет сессию, устанавливая этап `awaiting_fullname`;
+   *    - формирует список ФИО сотрудников;
+   *    - отправляет запрос на ввод ФИО с перечнем вариантов (`MESSAGES.FULLNAME_PROMPT`);
+   *    - логирует переход на этап ввода ФИО.
+   *
+   * @param {Context} ctx — контекст сообщения, содержащий данные о чате и пользователе
+   * @param {number} chatId — идентификатор чата/пользователя
+   * @param {string} inputText — текст сообщения от пользователя (введённый номер телефона)
+   *
+   * @returns {Promise<void>} — асинхронное выполнение без возвращаемого значения
+   */
   async handle(ctx: Context, chatId: number, inputText: string): Promise<void> {
     if (!this.phoneValidator.isValidPhone(inputText)) {
-      await safeReply(ctx, MESSAGES.PHONE_INVALID, this.logger);
+      await safeReply(ctx, MESSAGES.PHONE, this.logger);
       return;
     }
 
-    const staffList = await this.phoneValidator.findStaffByPhone(inputText.replace('+', ''));
+    const staffList = await this.phoneValidator.findStaffByPhone(inputText);
+    console.log(staffList);
 
     if (staffList.length === 0) {
       await safeReply(ctx, MESSAGES.PHONE_NOT_FOUND, this.logger);

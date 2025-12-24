@@ -18,6 +18,24 @@ export class MessageHandler {
     private readonly codeStepHandler: CodeStepHandler,
   ) {}
 
+  /**
+   * Обрабатывает входящее текстовое сообщение в контексте текущей сессии аутентификации.
+   * Выполняет следующие шаги:
+   * 1. Получает `chatId` из контекста сообщения.
+   * 2. Проверяет существование сессии для данного чата.
+   * 3. Извлекает и очищает текст сообщения.
+   * 4. В зависимости от этапа сессии (`session.step`):
+   *    - передаёт управление соответствующему обработчику шага;
+   *    - отправляет сообщение об ошибке и очищает сессию при неизвестном этапе.
+   * 5. Обрабатывает ошибки выполнения, отправляет сообщение пользователю и очищает сессию.
+   *
+   * @param {Context} ctx — контекст сообщения, содержащий данные о чате, пользователе и тексте сообщения
+   * @param {() => Promise<void>} next — функция продолжения цепочки middleware,
+   *   вызывается, если сообщение не относится к активной сессии аутентификации
+   *
+   * @returns {Promise<void>} — асинхронное выполнение без возвращаемого значения
+   * @private
+   */
   setup(bot: Bot): void {
     bot.on('message_created', async (ctx: Context, next) => this.handleMessage(ctx, next));
   }
@@ -31,14 +49,13 @@ export class MessageHandler {
 
     const session = this.sessionManager.get(chatId);
     if (!session) return await next();
+    console.log(session);
 
     const inputText = ctx.message?.body?.text?.trim();
     if (!inputText) {
       await safeReply(ctx, 'Пожалуйста, введите номер телефона текстом в формате +79991234567', this.logger);
       return;
     }
-
-    console.log(3333);
 
     try {
       switch (session.step) {
