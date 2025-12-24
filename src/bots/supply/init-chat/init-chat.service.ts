@@ -8,7 +8,6 @@ import { SessionManagerService } from './session.manager.service';
 
 type NextFunction = () => Promise<void>;
 
-
 /**
  * Сервис для инициализации чата управления сырьём в боте.
  * Реализует пошаговый процесс:
@@ -26,7 +25,7 @@ export class InitChat {
     private deduplicator: EventDeduplicatorService,
   ) {}
 
-    /**
+  /**
    * Инициализирует обработчики команд и событий бота.
    * @param bot Экземпляр бота MaxHub
    */
@@ -36,7 +35,7 @@ export class InitChat {
     bot.on('bot_added', (ctx, next) => this.handleBotAdded(ctx, bot, next));
   }
 
-   /**
+  /**
    * Обрабатывает команду /init_chat — запускает процесс инициализации чата.
    * @param ctx Контекст сообщения
    */
@@ -61,7 +60,7 @@ export class InitChat {
     await ctx.reply('Выберите подразделение:', { attachments: [keyboard] });
   }
 
-    /**
+  /**
    * Обрабатывает callback‑запросы (нажатия кнопок).
    * @param ctx Контекст сообщения с callback‑данными
    * @param next Функция перехода к следующему middleware
@@ -83,7 +82,7 @@ export class InitChat {
     return next();
   }
 
-    /**
+  /**
    * Обрабатывает выбор подразделения через кнопку.
    * @param ctx Контекст сообщения с payload кнопки
    */
@@ -115,7 +114,7 @@ export class InitChat {
     );
   }
 
-    /**
+  /**
    * Обрабатывает событие добавления бота в чат.
    * Проверяет:
    * - Дубликаты событий
@@ -178,7 +177,7 @@ export class InitChat {
     }
   }
 
-    /**
+  /**
    * Обрабатывает подтверждение инициализации через кнопку «OK».
    * Сохраняет chatId в БД и завершает процесс.
    * @param ctx Контекст callback‑запроса
@@ -216,7 +215,7 @@ export class InitChat {
     }
   }
 
-    /**
+  /**
    * Получает список доступных подразделений пользователя из БД.
    * Фильтрует подразделения, где maxIdChat == null (чат не инициализирован).
    * @param userId ID пользователя в системе

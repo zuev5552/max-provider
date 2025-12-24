@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Сервис для генерации и валидации кодов подтверждения.
@@ -12,7 +12,10 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class CodeGeneratorService {
+  private readonly logger = new Logger(CodeGeneratorService.name);
+  constructor() {}
   /**
+   *
    * Генерирует 4‑значный числовой код подтверждения.
    *
    * Создаёт случайное число в диапазоне от 1000 до 9999 (включительно).

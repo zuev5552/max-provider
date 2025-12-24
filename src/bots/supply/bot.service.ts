@@ -7,7 +7,7 @@ import { commandsList } from './commands/commandsList';
 import { faq } from './commands/faq';
 import { start_bot } from './commands/start';
 import { InitChat } from './init-chat/init-chat.service';
-import { AuthService } from '@/auth/auth.service';
+import { AuthService } from '@/auth/auth.service/auth.service';
 
 /**
  * Сервис для работы с ботом SupplyBot.
