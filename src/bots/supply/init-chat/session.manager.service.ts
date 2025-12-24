@@ -4,34 +4,77 @@ import { InitChatSessionDto } from './session.dto';
 
 @Injectable()
 export class SessionManagerService {
-  private sessions = new Map<string, InitChatSessionDto>();
+  private readonly SESSION_TIMEOUT = 60 * 60 * 1000; // 1 час
+  private sessions = new Map<number, InitChatSessionDto>();
 
-  create(chatId: string, userId: string): void {
-    const key = `${chatId}:${userId}`;
-    this.sessions.set(key, {
+  /**
+   * Создать сессию по userId
+   * @param userId ID пользователя
+   */
+  create(userId: number): void {
+    this.sessions.set(userId, {
       step: 'awaiting_unit',
-      code: undefined,
-      timeoutId: undefined,
-      unitId: undefined,
     });
+    this.setupTimeout(userId);
   }
 
-  delete(chatId: string, userId: string): void {
-    const key = `${chatId}:${userId}`;
-    this.sessions.delete(key);
-  }
+  /**
+   * Удалить сессию по userId
+   * @param userId ID пользователя
+   */
+  delete(userId: number): void {
+    const session = this.sessions.get(userId);
 
-  get(chatId: string, userId: string): InitChatSessionDto | undefined {
-    const key = `${chatId}:${userId}`;
-    return this.sessions.get(key);
-  }
-
-  update(chatId: string, userId: string, partial: Partial<InitChatSessionDto>): boolean {
-    const session = this.get(chatId, userId);
-    if (!session) {
-      return false;
+    if (session?.timeoutId) {
+      clearTimeout(session.timeoutId);
     }
-    Object.assign(session, partial);
+
+    this.sessions.delete(userId);
+  }
+
+  /**
+   * Получить сессию по userId
+   * @param userId ID пользователя
+   * @returns Сессия или undefined
+   */
+  get(userId: number): InitChatSessionDto | undefined {
+    return this.sessions.get(userId);
+  }
+
+  /**
+   * Обновить сессию (перезапускает таймер)
+   * @param userId ID пользователя
+   * @param data Частичные данные для обновления
+   * @returns true, если сессия найдена и обновлена
+   */
+  update(userId: number, data: Partial<InitChatSessionDto>): boolean {
+    const session = this.get(userId);
+    if (!session) return false;
+
+    Object.assign(session, data);
+    this.setupTimeout(userId);
     return true;
+  }
+
+  /**
+   * Установить/перезапустить таймер автоудаления
+   * @param userId ID пользователя
+   */
+  private setupTimeout(userId: number): void {
+    const session = this.sessions.get(userId);
+    if (!session) return;
+
+    // Очистить предыдущий таймер
+    if (session.timeoutId) {
+      clearTimeout(session.timeoutId);
+    }
+
+    // Установить новый таймер
+    const timeoutId = setTimeout(() => {
+      this.sessions.delete(userId);
+      console.log(`Сессия userId=${userId} удалена по таймауту`);
+    }, this.SESSION_TIMEOUT);
+
+    session.timeoutId = timeoutId;
   }
 }

@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
 export class InitChatSessionDto {
-  code?: number;
-
-  step: 'awaiting_code' | 'awaiting_unit';
-
+  groupChatId?: number;
+  step: 'awaiting_chat' | 'awaiting_unit' | 'completed';
   timeoutId?: NodeJS.Timeout;
-
   unitId?: string;
+  unitName?: string;
+
+  constructor() {
+    this.step = 'awaiting_unit';
+  }
 }

@@ -35,12 +35,11 @@ export class AuthMiddleware {
    * @returns {Promise<void>}
    */
   async use(ctx: Context, next: NextFunction): Promise<void> {
-    // console.dir(ctx.message, { deph: null });
-    // console.dir(ctx, { deph: null });
+    // console.dir(ctx, { depf: null });
 
     // 1. Безопасное получение userId
     const userId = ctx.message?.sender?.user_id;
-    if (!userId) {
+    if (!userId || ctx.updateType != 'message_created') {
       return await next();
     }
 
