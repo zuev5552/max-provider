@@ -1,6 +1,13 @@
+/**
+ * Данные сессии инициализации чата.
+ * Хранит состояние процесса для конкретного пользователя.
+ */
 export class InitChatSessionDto {
+  /** chatId группового чата (после добавления бота) */
   groupChatId?: number;
-  step: 'awaiting_chat' | 'awaiting_unit' | 'completed';
+
+  /** Текущий шаг процесса */
+  step: 'awaiting_chat' | 'awaiting_unit';
   timeoutId?: NodeJS.Timeout;
   unitId?: string;
   unitName?: string;

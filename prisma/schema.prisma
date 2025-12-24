@@ -275,7 +275,7 @@ model InventorySettingsUnit {
   selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time
   minRequiredStock Decimal?  @default(50)
   idTelegramGroup  String?   @unique
-  maxIdChat        Int?      @unique
+  maxIdChat        BigInt?   @unique
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
@@ -552,7 +552,7 @@ enum DeliveryTransportName {
 model StaffMax {
   id      Int     @id @default(autoincrement())
   staffId String? @unique @db.VarChar(32)
-  idMax   Int     @unique
+  idMax   BigInt  @unique
 
   staff Staff? @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 

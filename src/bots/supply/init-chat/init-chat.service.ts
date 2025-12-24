@@ -6,6 +6,16 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { EventDeduplicatorService } from '../../../utils/event-deduplicator.service';
 import { SessionManagerService } from './session.manager.service';
 
+type NextFunction = () => Promise<void>;
+
+
+/**
+ * Сервис для инициализации чата управления сырьём в боте.
+ * Реализует пошаговый процесс:
+ * 1. Выбор подразделения (/init_chat)
+ * 2. Добавление бота в групповой чат по сырью
+ * 3. Подтверждение инициализации
+ */
 @Injectable()
 export class InitChat {
   private readonly logger = new Logger(InitChat.name);
@@ -16,21 +26,30 @@ export class InitChat {
     private deduplicator: EventDeduplicatorService,
   ) {}
 
+    /**
+   * Инициализирует обработчики команд и событий бота.
+   * @param bot Экземпляр бота MaxHub
+   */
   initChatStart(bot: Bot): void {
     bot.command('init_chat', this.handleInitStart.bind(this));
-    bot.on('message_callback', this.handleCallback.bind(this));
-    bot.on('bot_added', ctx => this.handleBotAdded(ctx, bot));
+    bot.on('message_callback', (ctx, next) => this.handleCallback(ctx, next));
+    bot.on('bot_added', (ctx, next) => this.handleBotAdded(ctx, bot, next));
   }
 
+   /**
+   * Обрабатывает команду /init_chat — запускает процесс инициализации чата.
+   * @param ctx Контекст сообщения
+   */
   private async handleInitStart(ctx: Context): Promise<void> {
-    const chatId = await ctx.chatId;
-    const userId = await ctx.user?.user_id;
+    const chatId = ctx.chatId;
+    const userId = ctx.user?.user_id;
 
     if (!chatId || !userId) return;
 
     this.sessionManager.create(userId);
 
     const units = await this.fetchUserUnits(userId);
+    console.log(units);
     if (units.length === 0) {
       await ctx.reply('У вас нет доступных подразделений.');
       return;
@@ -42,13 +61,38 @@ export class InitChat {
     await ctx.reply('Выберите подразделение:', { attachments: [keyboard] });
   }
 
-  private async handleCallback(ctx: Context): Promise<void> {
-    const chatId = await ctx.chatId;
-    const userId = await ctx.user?.user_id;
-    const payload = await ctx.callback?.payload;
-    console.log(payload);
+    /**
+   * Обрабатывает callback‑запросы (нажатия кнопок).
+   * @param ctx Контекст сообщения с callback‑данными
+   * @param next Функция перехода к следующему middleware
+   */
+  private async handleCallback(ctx: Context, next: NextFunction): Promise<void> {
+    const payload = ctx.callback?.payload;
+    if (!payload) return next();
 
-    if (!chatId || !userId || !payload?.startsWith('unitChatInit:')) return;
+    if (payload.startsWith('unitChatInit:')) {
+      return this.handleUnitSelection(ctx);
+    }
+    if (payload.startsWith('confirmInitChat:')) {
+      return this.handleConfirmation(ctx);
+    }
+    if (payload === 'retryInitChat') {
+      return this.handleInitStart(ctx);
+    }
+
+    return next();
+  }
+
+    /**
+   * Обрабатывает выбор подразделения через кнопку.
+   * @param ctx Контекст сообщения с payload кнопки
+   */
+  private async handleUnitSelection(ctx: Context): Promise<void> {
+    const chatId = ctx.chatId;
+    const userId = ctx.user?.user_id;
+    const payload = ctx.callback?.payload;
+
+    if (!chatId || !userId || !payload) return;
 
     // Проверяем, что пользователь ещё не в процессе ожидания чата
     const session = this.sessionManager.get(userId);
@@ -71,21 +115,41 @@ export class InitChat {
     );
   }
 
-  private async handleBotAdded(ctx: Context, bot: Bot) {
-    console.log(1111);
-    // 1. Проверяем на дубликат
+    /**
+   * Обрабатывает событие добавления бота в чат.
+   * Проверяет:
+   * - Дубликаты событий
+   * - Валидность сессии
+   * - Занятость чата
+   * @param ctx Контекст события
+   * @param bot Экземпляр бота
+   * @param next Функция перехода к следующему middleware
+   */
+  private async handleBotAdded(ctx: Context, bot: Bot, next: NextFunction) {
+    //Проверяем на дубликат
     const key = this.deduplicator.getKey(ctx);
-    if (!key || this.deduplicator.isDuplicate(key)) return;
-
-    console.log(222);
+    if (!key || this.deduplicator.isDuplicate(key)) return await next();
 
     const [groupChatId, userId] = [ctx.chatId, ctx.user?.user_id];
-    console.log([groupChatId, userId]);
-
-    if (!groupChatId || !userId) return;
+    if (!groupChatId || !userId) return await next();
 
     const session = this.sessionManager.get(userId);
-    if (!session || session.step !== 'awaiting_chat') return;
+    if (!session || session.step !== 'awaiting_chat') return await next();
+
+    // Проверка занятости чата + получение названия пиццерии
+    const occupant = await this.prisma.inventorySettingsUnit.findFirst({
+      where: { maxIdChat: groupChatId },
+      select: { unitName: true },
+    });
+    if (occupant) {
+      await ctx.reply(
+        `Этот чат уже используется для пиццерии <b>${occupant.unitName}</b>. ` +
+          `Пожалуйста, создайте новый чат для инициализации.`,
+        { format: 'html' },
+      );
+      this.sessionManager.delete(userId);
+      return;
+    }
 
     try {
       await bot.api.sendMessageToChat(
@@ -95,8 +159,8 @@ export class InitChat {
       );
 
       const keyboard = Keyboard.inlineKeyboard([
-        [Keyboard.button.callback('OK', `confirm:${groupChatId}`)],
-        [Keyboard.button.callback('Проблема', 'retry')],
+        [Keyboard.button.callback('OK', `confirmInitChat:${groupChatId}`)],
+        [Keyboard.button.callback('Проблема', 'retryInitChat')],
       ]);
       await bot.api.sendMessageToUser(
         userId,
@@ -114,52 +178,50 @@ export class InitChat {
     }
   }
 
-  // private async handleConfirmation(ctx: Context): Promise<void> {
-  //   const userId = ctx.user?.user_id;
-  //   const payload = ctx.callback?.payload;
-  //   const initChatId = ctx.chatId;
+    /**
+   * Обрабатывает подтверждение инициализации через кнопку «OK».
+   * Сохраняет chatId в БД и завершает процесс.
+   * @param ctx Контекст callback‑запроса
+   */
+  private async handleConfirmation(ctx: Context): Promise<void> {
+    const userId = ctx.user?.user_id;
+    const payload = ctx.callback?.payload;
 
-  //   if (!userId || !payload || !initChatId) return;
+    if (!userId || !payload) return;
 
-  //   if (payload === 'retry') {
-  //     await this.restartInitiation(ctx, userId);
-  //     return;
-  //   }
+    if (payload.startsWith('confirmInitChat:')) {
+      const groupChatId = Number(payload.split('confirmInitChat:')[1]);
 
-  //   if (payload.startsWith('confirm:')) {
-  //     const groupChatId = payload.split('confirm:')[1];
-  //     const session = this.sessionManager.get(initChatId, userId);
-  //     if (!session) return;
+      const session = this.sessionManager.get(userId);
+      if (!session) return;
+      const unitId = session?.unitId;
+      if (!unitId) return;
 
-  //     this.sessionManager.update(initChatId, userId, {
-  //       groupChatId,
-  //       step: 'completed',
-  //     });
+      // Обновляем запись в базе данных
+      await this.prisma.inventorySettingsUnit.update({
+        where: { unitId: unitId },
+        data: { maxIdChat: groupChatId },
+      });
 
-  // await ctx.replyToUser(
-  //   userId,
-  //   'Чат успешно инициализирован! Теперь я буду отправлять сюда уведомления о низких остатках.',
-  // );
-  //   }
-  // }
+      this.sessionManager.update(userId, {
+        groupChatId,
+      });
+      await ctx.reply(
+        `Чат для пиццерии <b>${session.unitName}</b> успешно инициализирован! Теперь я смогу уведомлять об остатках`,
+        { format: 'html' },
+      );
 
-  // private async restartInitiation(ctx: Context, userId: string): Promise<void> {
-  //   const initChatId = await ctx.chatId?.toString();
-  //   if (!initChatId) return;
+      // удаляем сессию
+      this.sessionManager.delete(userId);
+    }
+  }
 
-  //   const session = this.sessionManager.get(initChatId, userId);
-  //   if (!session) return;
-
-  //   this.sessionManager.update(initChatId, userId, {
-  //     step: 'awaiting_unit',
-  //     unitId: undefined,
-  //     groupChatId: undefined,
-  //   });
-
-  //   // await ctx.replyToUser(userId, 'Давайте начнём заново. Выберите подразделение:');
-  //   // await this.handleInitStart(ctx.asUserContext(userId));
-  // }
-
+    /**
+   * Получает список доступных подразделений пользователя из БД.
+   * Фильтрует подразделения, где maxIdChat == null (чат не инициализирован).
+   * @param userId ID пользователя в системе
+   * @returns Массив объектов { unitId, name }
+   */
   private async fetchUserUnits(userId: number): Promise<{ unitId: string; name: string }[]> {
     return await this.prisma.$queryRaw`
       SELECT ur."unitId", un."name"

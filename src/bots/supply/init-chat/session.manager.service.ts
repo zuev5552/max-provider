@@ -2,13 +2,24 @@ import { Injectable } from '@nestjs/common';
 
 import { InitChatSessionDto } from './session.dto';
 
+/**
+ * Сервис управления сессиями пользователей.
+ * Обеспечивает:
+ * - Создание/удаление сессий
+ * - Автоматическое удаление по таймауту
+ * - Обновление данных сессии
+ */
 @Injectable()
 export class SessionManagerService {
+  /** Время жизни сессии в мс (1 час) */
   private readonly SESSION_TIMEOUT = 60 * 60 * 1000; // 1 час
+
+  /** Хранилище сессий: userId → данные сессии */
   private sessions = new Map<number, InitChatSessionDto>();
 
   /**
-   * Создать сессию по userId
+   * Создаёт новую сессию для пользователя.
+   * Устанавливает начальный шаг и таймер автоудаления.
    * @param userId ID пользователя
    */
   create(userId: number): void {
@@ -19,7 +30,8 @@ export class SessionManagerService {
   }
 
   /**
-   * Удалить сессию по userId
+   * Удаляет сессию пользователя.
+   * Очищает таймер, если он установлен.
    * @param userId ID пользователя
    */
   delete(userId: number): void {
@@ -33,19 +45,20 @@ export class SessionManagerService {
   }
 
   /**
-   * Получить сессию по userId
+   * Получает данные сессии по ID пользователя.
    * @param userId ID пользователя
-   * @returns Сессия или undefined
+   * @returns Объект сессии или undefined, если сессия не найдена
    */
   get(userId: number): InitChatSessionDto | undefined {
     return this.sessions.get(userId);
   }
 
   /**
-   * Обновить сессию (перезапускает таймер)
+   * Обновляет данные сессии.
+   * Перезапускает таймер автоудаления.
    * @param userId ID пользователя
-   * @param data Частичные данные для обновления
-   * @returns true, если сессия найдена и обновлена
+   * @param data Частичные данные для обновления сессии
+   * @returns true, если сессия найдена и обновлена; false — если сессия отсутствует
    */
   update(userId: number, data: Partial<InitChatSessionDto>): boolean {
     const session = this.get(userId);
@@ -57,7 +70,8 @@ export class SessionManagerService {
   }
 
   /**
-   * Установить/перезапустить таймер автоудаления
+   * Устанавливает/перезапускает таймер автоудаления сессии.
+   * Очистка предыдущего таймера (если есть).
    * @param userId ID пользователя
    */
   private setupTimeout(userId: number): void {
