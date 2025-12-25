@@ -20,7 +20,7 @@ export class AuthService {
     private readonly phoneConfirmationHandler: PhoneConfirmationHandler,
   ) {}
 
-    /**
+  /**
    * Настраивает бота, регистрируя все необходимые обработчики событий.
    * Вызывает методы настройки для каждого из обработчиков:
    * - обработчик начала аутентификации;

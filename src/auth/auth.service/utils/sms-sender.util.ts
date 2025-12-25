@@ -23,7 +23,7 @@ import { CodeGeneratorService } from '@/utils/code.generator.service';
 export class SmsSenderUtil {
   private readonly logger = new Logger(SmsSenderUtil.name);
 
-    /**
+  /**
    * Создаёт экземпляр утилиты отправки SMS.
    *
    * @param {SMSRu} smsRu — экземпляр клиента для работы с API SMS.ru,
@@ -39,7 +39,7 @@ export class SmsSenderUtil {
     private readonly codeGenerator: CodeGeneratorService,
   ) {}
 
-    /**
+  /**
    * Отправляет SMS‑код подтверждения на указанный номер телефона.
    * Выполняет следующие шаги:
    * 1. Генерирует новый SMS‑код с помощью `codeGenerator.generateCode()`.
@@ -92,6 +92,7 @@ export class SmsSenderUtil {
       const smsResult = await this.smsRu.sendSms({
         to: phone,
         msg: `Код авторизации на сайте Dodo-sky: ${String(newCode)}`,
+        //TODO на проде выключить тестовый режим СМС
         test: true,
       });
 

@@ -76,6 +76,8 @@ export class SupplyBotService {
         });
       });
 
+      this.bot.command('get_myId', async (ctx: Context) => await ctx.reply(`Твой ID: ${ctx.message?.sender?.user_id}`));
+
       // Ограничение доступа без авторизации
       this.bot.use(this.authVerification.use.bind(this.authVerification));
 
