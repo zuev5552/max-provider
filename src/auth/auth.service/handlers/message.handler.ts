@@ -3,43 +3,54 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { SessionManagerService } from '../session.manager.service';
 import { CodeStepHandler } from '../steps/code-step.handler';
+import { PhoneAuthFlowHandler } from '../steps/phoneAuthFlow-step.handler';
 import { FullnameStepHandler } from '../steps/fullname-step.handler';
-import { PhoneStepHandler } from '../steps/phone-step.handler';
+import { MESSAGES } from '../utils/messages.constants';
+import { PhoneValidationService } from '@/utils/phone.validation.service';
 import { safeReply } from '@/utils/safe-reply.util';
 
+/**
+ * Обработчик входящих сообщений от пользователей в процессе аутентификации.
+ * Отвечает за:
+ * - получение и валидацию входных данных;
+ * - маршрутизацию сообщений к соответствующим обработчикам шагов аутентификации
+ * (Dodo IS, полное имя, код подтверждения);
+ * - обработку ошибок и неизвестных состояний сессии;
+ * - отправку соответствующих сообщений пользователю.
+ */
 @Injectable()
 export class MessageHandler {
   private readonly logger = new Logger(MessageHandler.name);
 
   constructor(
     private readonly sessionManager: SessionManagerService,
-    private readonly phoneStepHandler: PhoneStepHandler,
+    private readonly phoneAuthFlowHandler: PhoneAuthFlowHandler,
     private readonly fullnameStepHandler: FullnameStepHandler,
     private readonly codeStepHandler: CodeStepHandler,
+    private readonly phoneValidator: PhoneValidationService,
   ) {}
 
-  /**
-   * Обрабатывает входящее текстовое сообщение в контексте текущей сессии аутентификации.
-   * Выполняет следующие шаги:
-   * 1. Получает `chatId` из контекста сообщения.
-   * 2. Проверяет существование сессии для данного чата.
-   * 3. Извлекает и очищает текст сообщения.
-   * 4. В зависимости от этапа сессии (`session.step`):
-   *    - передаёт управление соответствующему обработчику шага;
-   *    - отправляет сообщение об ошибке и очищает сессию при неизвестном этапе.
-   * 5. Обрабатывает ошибки выполнения, отправляет сообщение пользователю и очищает сессию.
-   *
-   * @param {Context} ctx — контекст сообщения, содержащий данные о чате, пользователе и тексте сообщения
-   * @param {() => Promise<void>} next — функция продолжения цепочки middleware,
-   *   вызывается, если сообщение не относится к активной сессии аутентификации
-   *
-   * @returns {Promise<void>} — асинхронное выполнение без возвращаемого значения
-   * @private
-   */
   setup(bot: Bot): void {
     bot.on('message_created', async (ctx: Context, next) => this.handleMessage(ctx, next));
   }
 
+  /**
+   * Обрабатывает входящее сообщение от пользователя в контексте текущей сессии аутентификации.
+   * Выполняет следующие шаги:
+   * - проверяет наличие `chatId`;
+   * - получает текущую сессию пользователя;
+   * - извлекает и валидирует текст сообщения;
+   * - валидирует номер телефона, если сессия находится на шаге `awaiting_phone`;
+   * - маршрутизирует сообщение к соответствующему обработчику шага аутентификации;
+   * - обрабатывает ошибки и неизвестные состояния сессии.
+   *
+   * @param ctx Контекст текущего сообщения (содержит информацию о чате, пользователе и тексте сообщения).
+   * @param next Функция для передачи управления следующему middleware в цепочке.
+   *
+   * @returns `Promise<void>` — асинхронное выполнение без возвращаемого значения.
+   *
+   * @private
+   */
   private async handleMessage(ctx: Context, next: () => Promise<void>): Promise<void> {
     const chatId = ctx.chatId;
     if (chatId == null) {
@@ -49,18 +60,22 @@ export class MessageHandler {
 
     const session = this.sessionManager.get(chatId);
     if (!session) return await next();
-    console.log(session);
 
     const inputText = ctx.message?.body?.text?.trim();
     if (!inputText) {
-      await safeReply(ctx, 'Пожалуйста, введите номер телефона текстом в формате +79991234567', this.logger);
+      await safeReply(ctx, MESSAGES.PHONE, this.logger);
+      return;
+    }
+
+    if (session.step === 'awaiting_phone' && !this.phoneValidator.isValidPhone(inputText)) {
+      await safeReply(ctx, MESSAGES.PHONE, this.logger);
       return;
     }
 
     try {
       switch (session.step) {
         case 'awaiting_phone':
-          await this.phoneStepHandler.handle(ctx, chatId, inputText);
+          await this.phoneAuthFlowHandler.handle(ctx, chatId, inputText);
           break;
         case 'awaiting_fullname':
           await this.fullnameStepHandler.handle(ctx, chatId, inputText);

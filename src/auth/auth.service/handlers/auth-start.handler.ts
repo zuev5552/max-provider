@@ -8,27 +8,19 @@ import { SessionTimeoutUtil } from '../utils/session-timeout.util';
 import { safeReply } from '@/utils/safe-reply.util';
 
 /**
- * Обработчик запуска процесса аутентификации через контактный номер телефона.
- *
+ * Обработчик начала процесса аутентификации пользователя через бота.
  * Отвечает за:
- * - обработку входящих сообщений с контактными данными;
- * - создание и обновление сессии аутентификации;
- * - проверку cooldown между запросами SMS;
- * - отправку запроса подтверждения номера телефона с клавиатурой выбора;
- * - запуск таймера сессии.
- *
- * @Injectable
- * @class AuthStartHandler
+ * - создание сессии аутентификации;
+ * - проверку cooldown‑периода между повторными запросами SMS;
+ * - отправку запроса подтверждения номера телефона;
+ * - настройку таймаута сессии.
  */
 @Injectable()
 export class AuthStartHandler {
   private readonly logger = new Logger(AuthStartHandler.name);
 
-   /**
-   * Время ожидания между повторными запросами SMS.
-   * Установлено в 30 минут .
-   * @private
-   * @constant {number}
+  /**
+   * Время ожидания между повторными попытками отправки SMS (30 минут).
    */
   private readonly SMS_RESEND_COOLDOWN = 30 * 60 * 1000;
 
@@ -37,28 +29,20 @@ export class AuthStartHandler {
     private readonly sessionTimeout: SessionTimeoutUtil,
   ) {}
 
-    /**
-   * Настраивает обработчик для события `message_created` бота.
-   * Обрабатывает сообщения, содержащие контактные данные пользователя:
-   * - проверяет наличие существующей сессии;
-   * - обрабатывает cooldown между запросами SMS;
-   * - создаёт новую сессию, если её нет;
-   * - сохраняет номер телефона из контакта в сессию;
-   * - запускает таймер сессии;
-   * - отправляет пользователю запрос на подтверждение номера с клавиатурой выбора.
+  /**
+   * Регистрирует обработчик события `message_created` для начала процесса аутентификации.
+   * При получении сообщения:
+   * - проверяет наличие контактной информации;
+   * - обрабатывает cooldown, если сессия уже существует;
+   * - создаёт новую сессию и сохраняет номер телефона;
+   * - запускает таймер таймаута;
+   * - отправляет пользователю запрос подтверждения номера с клавиатурой выбора.
    *
-   * @param {Bot} bot — экземпляр бота MaxBot API для регистрации обработчика событий
-   *
-   * @example
-   * const authStartHandler = new AuthStartHandler(sessionManager, sessionTimeout);
-   * authStartHandler.handleAuthStart(bot); // Регистрирует обработчик сообщений для бота
-   *
-   * @returns {void}
+   * @param bot Экземпляр бота, для которого настраивается обработчик событий.
    */
   handleAuthStart(bot: Bot): void {
     bot.on('message_created', async (ctx, next) => {
       if (!ctx.contactInfo) return next();
-      console.log(ctx);
 
       const existingSession = this.sessionManager.get(ctx.chatId);
       if (existingSession) {
@@ -92,15 +76,16 @@ export class AuthStartHandler {
   }
 
   /**
-   * Обрабатывает ситуацию, когда сессия уже существует, и проверяет cooldown между запросами SMS.
+   * Проверяет, находится ли пользователь в cooldown‑периоде после предыдущей попытки отправки SMS.
+   * Если cooldown активен, отправляет пользователю сообщение с указанием оставшегося времени.
    *
-   * Если время с последнего запроса SMS меньше  30 минут’, отправляет пользователю
-   * сообщение с указанием оставшегося времени ожидания.
+   * @param ctx Контекст текущего сообщения от пользователя.
+   * @param session Текущая сессия аутентификации пользователя.
+   * @param chatId Идентификатор чата для логирования и обработки.
    *
-   * @param {Context} ctx — контекст сообщения для отправки ответа пользователю
-   * @param {AuthSession} session — существующая сессия аутентификации
-   * @param {number} chatId — идентификатор чата/пользователя
-   * @returns {Promise<boolean>} `true`, если cooldown активен и сообщение отправлено; `false` в противном случае
+   * @returns `true`, если cooldown активен и сообщение отправлено;
+   *          `false`, если cooldown истёк или отсутствует.
+   *
    * @private
    */
   private async handleCooldown(ctx: Context, session: AuthSession, chatId: number): Promise<boolean> {

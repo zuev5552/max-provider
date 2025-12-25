@@ -11,7 +11,7 @@ import { IdMaxService } from './auth.service/idmax.service';
 import { SessionManagerService } from './auth.service/session.manager.service';
 import { CodeStepHandler } from './auth.service/steps/code-step.handler';
 import { FullnameStepHandler } from './auth.service/steps/fullname-step.handler';
-import { PhoneStepHandler } from './auth.service/steps/phone-step.handler';
+import { PhoneAuthFlowHandler } from './auth.service/steps/phoneAuthFlow-step.handler';
 import { SessionTimeoutUtil } from './auth.service/utils/session-timeout.util';
 import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
 
@@ -50,7 +50,7 @@ import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
     MessageHandler,
 
     // Шаги авторизации
-    PhoneStepHandler,
+    PhoneAuthFlowHandler,
     FullnameStepHandler,
     CodeStepHandler,
 

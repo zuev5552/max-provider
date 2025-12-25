@@ -26,7 +26,7 @@ export class CodeStepHandler {
   private readonly logger = new Logger(CodeStepHandler.name);
   private readonly MAX_ATTEMPTS = 10;
 
-    /**
+  /**
    * Создаёт экземпляр обработчика ввода SMS‑кода.
    *
    * @param {SessionManagerService} sessionManager — сервис управления сессиями аутентификации,
@@ -42,7 +42,7 @@ export class CodeStepHandler {
     private readonly codeGenerator: CodeGeneratorService,
   ) {}
 
-    /**
+  /**
    * Обрабатывает ввод SMS‑кода пользователем.
    * Выполняет следующие шаги:
    * 1. Получает сессию пользователя по `chatId`.
@@ -108,7 +108,6 @@ export class CodeStepHandler {
       const userId = ctx.user?.user_id;
       if (!userId) return;
       // Сохраняем idMax в БД
-      console.log(session);
       await this.idMaxService.linkIdMax(session.matchedStaff.id, userId);
 
       // Успешная авторизация — завершаем процесс

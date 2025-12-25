@@ -18,7 +18,7 @@ import { SessionManagerService } from '../session.manager.service';
  */
 @Injectable()
 export class SessionTimeoutUtil {
-    /**
+  /**
    * Хранилище активных таймеров, где ключ — `chatId`, значение — объект таймера Node.js (`NodeJS.Timeout`).
    * Позволяет отслеживать и управлять таймерами для каждой сессии отдельно.
    * @private
@@ -55,7 +55,7 @@ export class SessionTimeoutUtil {
     }
   }
 
-    /**
+  /**
    * Устанавливает новый таймер для автоматической очистки сессии.
    * Выполняет следующие шаги:
    * 1. Проверяет инициализацию `sessionManager`. Если не инициализирован — логирует ошибку и выходит.
