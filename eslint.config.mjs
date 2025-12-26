@@ -87,6 +87,7 @@ export default [
           ignoreUrls: true,
           ignoreStrings: true,
           ignoreTemplateLiterals: true,
+          ignoreComments: true,
         },
       ],
     },
