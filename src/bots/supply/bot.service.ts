@@ -1,3 +1,4 @@
+/* eslint-disable perfectionist/sort-classes */
 import { Bot, Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
@@ -43,21 +44,12 @@ export class SupplyBotService implements OnModuleInit {
     this.logger.log('SupplyBot инициализирован и запущен');
   }
 
-  /** Отправляет сообщение в указанный чат. @param chatId ID чата. @param text Текст сообщения. @returns Promise<void> */
-  async sendMessageToChat(chatId: number, text: string): Promise<void> {
+  /** Устанавливает список команд для бота в интерфейсе Telegram (из commandsList). @returns Promise<void> */
+  private async setupCommands(): Promise<void> {
     try {
-      await this.bot.api.sendMessageToChat(chatId, text);
+      await this.bot.api.setMyCommands(commandsList);
     } catch (error) {
-      this.logger.error(`Ошибка отправки в чат ${chatId}: ${error.message}`);
-    }
-  }
-
-  /** Отправляет сообщение указанному пользователю. @param userId ID пользователя. @param text Текст сообщения. @returns Promise<void> */
-  async sendMessageToUser(userId: number, text: string): Promise<void> {
-    try {
-      await this.bot.api.sendMessageToUser(userId, text);
-    } catch (error) {
-      this.logger.error(`Ошибка отправки пользователю ${userId}: ${error.message}`);
+      this.logger.error(`Ошибка установки команд бота: ${error.message}`);
     }
   }
 
@@ -92,12 +84,21 @@ export class SupplyBotService implements OnModuleInit {
     }
   }
 
-  /** Устанавливает список команд для бота в интерфейсе Telegram (из commandsList). @returns Promise<void> */
-  private async setupCommands(): Promise<void> {
+  /** Отправляет сообщение в указанный чат. @param chatId ID чата. @param text Текст сообщения. @returns Promise<void> */
+  async sendMessageToChat(chatId: number, text: string): Promise<void> {
     try {
-      await this.bot.api.setMyCommands(commandsList);
+      await this.bot.api.sendMessageToChat(chatId, text);
     } catch (error) {
-      this.logger.error(`Ошибка установки команд бота: ${error.message}`);
+      this.logger.error(`Ошибка отправки в чат ${chatId}: ${error.message}`);
+    }
+  }
+
+  /** Отправляет сообщение указанному пользователю. @param userId ID пользователя. @param text Текст сообщения. @returns Promise<void> */
+  async sendMessageToUser(userId: number, text: string): Promise<void> {
+    try {
+      await this.bot.api.sendMessageToUser(userId, text);
+    } catch (error) {
+      this.logger.error(`Ошибка отправки пользователю ${userId}: ${error.message}`);
     }
   }
 }
