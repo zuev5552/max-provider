@@ -44,7 +44,7 @@ export class SupplyBotService implements OnModuleInit {
     this.logger.log('SupplyBot инициализирован и запущен');
   }
 
-  /** Устанавливает список команд для бота в интерфейсе Telegram (из commandsList). @returns Promise<void> */
+  /** Устанавливает список команд для бота в интерфейсе MAX (из commandsList). @returns Promise<void> */
   private async setupCommands(): Promise<void> {
     try {
       await this.bot.api.setMyCommands(commandsList);
