@@ -1,6 +1,5 @@
 export const commandsList = [
   { name: 'faq', description: 'вопросы и ответы' },
-  { name: 'init_chat', description: 'Инициализация чатов по сырью' },
   { name: 'get_myId', description: 'Покажи мой ID' },
   { name: 'testo20', description: 'Тесто 20' },
   { name: 'testo25', description: 'Тесто 25' },
