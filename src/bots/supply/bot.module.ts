@@ -5,6 +5,7 @@ import { AuthMiddleware } from './auth.middleware';
 import { OrchestratorSupplyBot } from './bot-orchestrator';
 import { BotProvider } from './service/create-bot';
 import { EventListenerService } from './service/event-listener.service';
+import { LowStockCallbackService } from './service/low-stock-callback.service';
 import { NotificationService } from './service/notification.service';
 import { AuthModule } from '@/auth/auth.module';
 
@@ -17,6 +18,7 @@ import { AuthModule } from '@/auth/auth.module';
     EventListenerService,
     NotificationService,
     OrchestratorSupplyBot,
+    LowStockCallbackService,
   ],
   exports: [BotProvider],
 })

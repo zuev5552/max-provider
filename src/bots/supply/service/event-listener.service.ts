@@ -7,25 +7,27 @@ import { commandsList } from '../commands/commandsList';
 import { faq } from '../commands/faq';
 import { start_bot } from '../commands/start';
 import { BotProvider } from './create-bot';
+import { LowStockCallbackService } from './low-stock-callback.service';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { EventDeduplicatorService } from '@/utils/event-deduplicator.service';
 
 /** Сервис настройки обработчиков событий для бота: команды, авторизация, дедупликация. */
 @Injectable()
 export class EventListenerService {
-  readonly logger = new Logger (EventListenerService.name);
+  readonly logger = new Logger(EventListenerService.name);
   constructor(
     private deduplicator: EventDeduplicatorService,
     private authService: AuthService,
     private authVerification: AuthMiddleware,
     private botProvider: BotProvider,
+    private lowStockCallbackService: LowStockCallbackService,
   ) {}
 
-    /** Инициализирует обработчики событий бота: устанавливает команды, настраивает обработчики (bot_added, bot_started и др.), подключает middleware авторизации. При ошибке — логирует и выбрасывает исключение. @returns {Promise<void>} */
+  /** Инициализирует обработчики событий бота: устанавливает команды, настраивает обработчики (bot_added, bot_started и др.), подключает middleware авторизации. При ошибке — логирует и выбрасывает исключение. @returns {Promise<void>} */
   async initListener() {
     const bot = this.botProvider.bot;
     try {
-      /** установка команд */ 
+      /** установка команд */
       await bot.api.setMyCommands(commandsList);
 
       bot.command('get_myId', async (ctx: Context) => await ctx.reply(`Твой ID: ${ctx.message?.sender?.user_id}`));
@@ -50,6 +52,15 @@ export class EventListenerService {
 
       /**остальные команды авторизованного пользователя */
       bot.command('faq', async (ctx: Context) => await ctx.reply(faq(), { format: 'html' }));
+
+      bot.on('message_callback', async (ctx: Context, next) => {
+        const username = ctx.callback?.user.name;
+        const payload = ctx.callback?.payload;
+        if (!payload || !payload.startsWith('lowStock:')) {
+          return next();
+        }
+        await this.lowStockCallbackService.handleLowStockCallback(ctx, payload, username);
+      });
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд ${error}`);
     }

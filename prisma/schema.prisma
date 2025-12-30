@@ -76,7 +76,7 @@ model Unit {
   subscribes            Subscribe[]
   departments           UnitDepartment[]
   inventoryStocks       InventoryStocks[]
-  inventoryLowerStocks  InventoryLowerStock[]
+  inventoryLowStocks    InventoryLowStock[]
   inventorySettingsUnit InventorySettingsUnit?
   inventoryItemSettings InventoryItemSettings[]
   shifts                Shift[]
@@ -241,41 +241,43 @@ model InventoryItem {
   id   String @id @db.VarChar(32)
   name String
 
-  lowerStocks           InventoryLowerStock[]
+  lowerStocks           InventoryLowStock[]
   inventoryItemSettings InventoryItemSettings[]
 
   @@map("inventory_items")
 }
 
-model InventoryLowerStock {
-  id                    String    @id @default(uuid()) @db.Uuid
-  unitId                String    @db.VarChar(32)
-  itemId                String    @db.VarChar(32)
-  createdAt             DateTime  @default(now())
-  resolvedAt            DateTime?
-  reason                String?
-  calculatedAt          DateTime
-  resolvedByUserName    String?
-  notifiedDirector      Boolean   @default(false)
-  notifiedSupplyManager Boolean   @default(false)
+model InventoryLowStock {
+  id                       String    @id @default(uuid()) @db.Uuid
+  unitId                   String    @db.VarChar(32)
+  itemId                   String    @db.VarChar(32)
+  createdAtUtc             DateTime  @default(now()) // время создания проблемы
+  createdDateUtc           String  // только дата, время = 00:00:00. По одной позиции в день может быть только одно нарушение
+  resolvedAtUtc            DateTime? // время когда решают задачу
+  reason                   String? // причина проблема
+  calculatedAt             DateTime // время создания остатков на сервере
+  resolvedByUserName       String? // кто решил вопрос
+  notifiedDirector         Boolean   @default(false) // уведомлен директор (60 минут после создания и при отсутствии решения)
+  notifiedSupplyManager    Boolean   @default(false) // уведомлен руководитель отдела поставки (30 минут и нет решения)
+  notifiedUnit             Boolean   @default(false) // сообщение написано в чат пиццерии
+  notifiedSupplyDepartment Boolean   @default(false) // сообщение написано в чат Отдела поставки
+  notifiedPrz              Boolean? // сообщение написано в чат ПРЦ (при его наличии)
 
   unit Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([calculatedAt, unitId, itemId], name: "inventory_lower_stock_unique")
-  @@map("inventory_lower_stocks")
+  @@unique([createdDateUtc, unitId, itemId], name: "inventory_lower_stock_unique")
+  @@map("inventory_low_stocks")
 }
 
 model InventorySettingsUnit {
-  unitId           String    @id @db.VarChar(32)
+  unitId           String   @id @db.VarChar(32)
   unitName         String
-  startTimeUtc     DateTime? @db.Time
-  selectStartTime  DateTime  @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time
-  endTimeUtc       DateTime? @db.Time
-  selectEndTime    DateTime  @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time
-  minRequiredStock Decimal?  @default(50)
-  idTelegramGroup  String?   @unique
-  maxIdChat        BigInt?   @unique
+  startTime        DateTime @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time
+  endTime          DateTime @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time
+  minRequiredStock Decimal? @default(50)
+  idTelegramGroup  String?  @unique
+  IdMaxChat        BigInt?  @unique
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
@@ -283,15 +285,13 @@ model InventorySettingsUnit {
 }
 
 model InventoryItemSettings {
-  itemId           String   @db.VarChar(32)
-  name             String
-  unitId           String   @db.VarChar(32)
-  isNotify         Boolean  @default(true)
-  isSentMessage    Boolean  @default(false)
-  isNotifyPrz      Boolean?
-  isSentMessagePrz Boolean  @default(false)
-  isNotifyDelay    Boolean  @default(false)
-  coefficient      Decimal  @default(1)
+  itemId                 String  @db.VarChar(32)
+  name                   String
+  unitId                 String  @db.VarChar(32)
+  isNotifyUnits          Boolean @default(true) // уведомляем пиццерии?
+  isNotifyPrz            Boolean @default(false) //уведомляем ПРЦ?
+  isNotifyEscalationItem Boolean @default(false) // уведомляем о просрочках?
+  coefficient            Decimal @default(1)
 
   unit Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -307,6 +307,10 @@ model InventorySettingsDepartment {
   idTelegramPrz              String?
   idTelegramDirector         String?
   idTelegramSupplyManager    String?
+  idMaxSupplyDepartment      BigInt?
+  idMaxPrz                   BigInt?
+  idMaxDirector              BigInt?
+  idMaxSupplyManager         BigInt?
 
   department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
