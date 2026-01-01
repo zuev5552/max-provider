@@ -215,7 +215,7 @@ model InventoryStocks {
   avgWeekdayExpense       Decimal
   avgWeekendExpense       Decimal
   daysUntilBalanceRunsOut Int             @db.Integer
-  calculatedAt            DateTime
+  calculatedAt            DateTime        @db.Timestamptz
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -252,7 +252,7 @@ model InventoryLowStock {
   unitId                   String    @db.VarChar(32)
   itemId                   String    @db.VarChar(32)
   createdAtUtc             DateTime  @default(now()) // время создания проблемы
-  createdDateUtc           String  // только дата, время = 00:00:00. По одной позиции в день может быть только одно нарушение
+  createdDateUtc           String // только дата, время = 00:00:00. По одной позиции в день может быть только одно нарушение
   resolvedAtUtc            DateTime? // время когда решают задачу
   reason                   String? // причина проблема
   calculatedAt             DateTime // время создания остатков на сервере
