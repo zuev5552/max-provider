@@ -6,7 +6,7 @@ import { AuthMiddleware } from '../auth.middleware';
 import { commandsList } from '../commands/commandsList';
 import { faq } from '../commands/faq';
 import { start_bot } from '../commands/start';
-import { BotProvider } from './create-bot';
+import { BotProvider } from '../create-bot';
 import { LowStockCallbackService } from './low-stock-callback.service';
 import { ShowStockService } from './show-stock.service';
 import { SessionStockService } from './stock-change/session-stock.service';

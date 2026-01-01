@@ -1,7 +1,7 @@
 /* eslint-disable perfectionist/sort-classes */
 import { Injectable, Logger } from '@nestjs/common';
 
-import { BotProvider } from './create-bot';
+import { BotProvider } from '../create-bot';
 
 @Injectable()
 export class NotificationService {

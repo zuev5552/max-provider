@@ -1,7 +1,7 @@
 /* eslint-disable perfectionist/sort-classes */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { BotProvider } from './service/create-bot';
+import { CreateSupplyBot } from './create-bot';
 import { EventListenerService } from './service/event-listener.service';
 
 /**Сервис оркестрации запуска бота: настраивает слушатели событий, затем запускает бота */
@@ -11,7 +11,7 @@ export class OrchestratorSupplyBot implements OnModuleInit {
 
   constructor(
     private eventListenerService: EventListenerService,
-    private botProvider: BotProvider,
+    private botProvider: CreateSupplyBot,
   ) {}
   /** Инициализирует модуль: настраивает слушателей событий, запускает бота; при ошибке — логирует и завершает процесс.*/
   async onModuleInit(): Promise<void> {

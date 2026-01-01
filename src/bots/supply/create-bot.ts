@@ -2,16 +2,16 @@
 import { Bot } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { env } from '../../../config/env';
+import { env } from '../../config/env';
 
 /**
  * Сервис предоставления экземпляра бота для взаимодействия с API мессенджера.
  * Создаёт экземпляр бота при наличии токена SUPPLY_BOT_TOKEN в окружении.
  */
 @Injectable()
-export class BotProvider {
+export class CreateSupplyBot {
   bot: Bot;
-  readonly logger = new Logger(BotProvider.name);
+  readonly logger = new Logger(CreateSupplyBot.name);
 
   constructor() {
     if (!env.SUPPLY_BOT_TOKEN) {
