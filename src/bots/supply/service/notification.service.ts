@@ -1,13 +1,13 @@
 /* eslint-disable perfectionist/sort-classes */
 import { Injectable, Logger } from '@nestjs/common';
 
-import { BotProvider } from '../create-bot';
+import { CreateSupplyBot } from '../create-bot';
 
 @Injectable()
 export class NotificationService {
   readonly logger = new Logger(NotificationService.name);
 
-  constructor(private botProvider: BotProvider) {}
+  constructor(private botProvider: CreateSupplyBot) {}
 
   /** Отправляет сообщение в указанный чат. @param chatId ID чата. @param text Текст сообщения. @returns Promise<void> */
   async sendMessageToChat(chatId: number, text: string): Promise<void> {
