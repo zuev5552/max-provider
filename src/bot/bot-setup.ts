@@ -3,6 +3,9 @@ import { Bot, Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { commandsList } from './commands/commandsList';
+import { FaqService } from './delivery/commands/faq.service';
+import { PaymentQrCodeService } from './delivery/commands/qr-code.service';
+import { DeliveryMenuService } from './delivery/delivery-menu.service';
 import { SessionStockService } from './supply/show-stock/session-stock.service';
 import { ShowChangeStockService } from './supply/show-stock/show-change-stock.service';
 import { ShowStockService } from './supply/show-stock/show-stock.service';
@@ -39,6 +42,9 @@ export class BotSetupService {
     private sessionStockService: SessionStockService,
     private showChangeStockService: ShowChangeStockService,
     private stockAlertCallbackService: StockAlertCallbackService,
+    private deliveryMenuService: DeliveryMenuService,
+    private faqService: FaqService,
+    private paymentQrCodeService: PaymentQrCodeService,
   ) {}
 
   /**
@@ -139,9 +145,20 @@ export class BotSetupService {
       bot.on('message_callback', async (ctx: Context, next) => {
         const payload = ctx.callback?.payload;
         if (!payload) return await next();
+        if (payload.split(':')[0] !== 'lowStock') return await next();
         const userName = ctx.callback.user.name;
         await this.stockAlertCallbackService.handleLowStockCallback(ctx, payload, userName);
       });
+
+      // 3. Обработка хандлеров для курьеров
+      /** 3.1. Главное меню сервиса для курьеров */
+      bot.action('service_courier', async (ctx: Context) => await this.deliveryMenuService.showDeliveryMenu(ctx));
+
+      /** 3.2. Справка для курьеров */
+      bot.action('faq-delivery', async (ctx: Context) => await this.faqService.showFaq(ctx));
+
+      /** 3.3. QR код для оплаты */
+      bot.action('qr_code', async (ctx: Context) => await this.paymentQrCodeService.showQrCode(ctx));
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);
     }

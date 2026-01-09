@@ -55,7 +55,7 @@ export class SupplyMenuService {
    */
   async showSupplyMenu(ctx: Context): Promise<void> {
     const keyboard = Keyboard.inlineKeyboard([
-      [Keyboard.button.callback('Ответы на вопросы по программе сырье', 'faq-supply')],
+      [Keyboard.button.callback('FAQ по программе сырье', 'faq-supply')],
       [Keyboard.button.callback('Введите наименование сырья', 'change-supply')],
       [
         Keyboard.button.callback('20 Тесто', 'Тесто 20'),
