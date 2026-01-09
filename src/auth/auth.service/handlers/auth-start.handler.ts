@@ -5,7 +5,7 @@ import { SessionManagerService } from '../session.manager.service';
 import { AuthSession } from '../types/auth.session.type';
 import { MESSAGES } from '../utils/messages.constants';
 import { SessionTimeoutUtil } from '../utils/session-timeout.util';
-import { safeReply } from '@/utils/safe-reply.util';
+import { safeReply } from '@/utils/bot/safe-reply.util';
 
 /**
  * Обработчик начала процесса аутентификации пользователя через бота.

@@ -5,8 +5,8 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { StockData } from '../types/stock-data.types';
-import { convertMeasurementUnit } from '@/utils/convert-measurement-unit';
-import { formatDays } from '@/utils/format-days';
+import { formatDays } from '@/utils/core/format-days';
+import { convertMeasurementUnit } from '@/utils/supply/convert-measurement-unit';
 
 /**
  * Сервис для отображения информации об остатках сырья в боте.
@@ -38,17 +38,16 @@ export class ShowStockService {
    * await showStockService(ctx);
    */
   async showStockService(ctx: Context): Promise<void> {
-    const nameItem = ctx.botInfo?.commands!.find(el => el.name === ctx.match?.[0])?.description;
+    const nameItem = ctx.callback?.payload;
     if (!nameItem) {
       await ctx.reply('Не удалось определить запрашиваемое сырьё.', { format: 'html' });
       return;
     }
-    const userId = ctx.message?.sender?.user_id;
+    const userId = ctx.callback.user.user_id;
     if (!userId) {
       await ctx.reply('Не удалось определить пользователя.', { format: 'html' });
       return;
     }
-
     await this.renderStockToBot(ctx, nameItem, userId);
   }
 

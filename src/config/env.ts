@@ -27,7 +27,7 @@ dotenv.config();
 const envSchema = z.object({
   PORT: z.coerce.number().positive().default(3000),
 
-  SUPPLY_BOT_TOKEN: z.string().min(1, 'SUPPLY_BOT_TOKEN обязателен'),
+  BOT_TOKEN: z.string().min(1, 'BOT_TOKEN обязателен'),
 
   // Postgres
   DATABASE_URL: z.url().refine(url => url.startsWith('postgresql://'), {

@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { SMSRuModule } from 'node-sms-ru/nestjs';
 
 import { PrismaModule } from '../prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
-import { SupplyBotModule } from './bots/supply/bot.module';
-import { env } from './config/env';
+import { BotModule } from './bot/bot.module';
+
 
 /**
  * Основной модуль приложения NestJS.
@@ -17,6 +15,6 @@ import { env } from './config/env';
  * @module AppModule
  */
 @Module({
-  imports: [SMSRuModule.forRoot({ api_id: env.SMS_RU_API_ID }), SupplyBotModule, PrismaModule, AuthModule],
+  imports: [PrismaModule, BotModule],
 })
 export class AppModule {}

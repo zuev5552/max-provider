@@ -5,7 +5,7 @@ import { IdMaxService } from '../idmax.service';
 import { SessionManagerService } from '../session.manager.service';
 import { MESSAGES } from '../utils/messages.constants';
 import { SmsSenderUtil } from '../utils/sms-sender.util';
-import { safeReply } from '@/utils/safe-reply.util';
+import { safeReply } from '@/utils/bot/safe-reply.util';
 
 /**
  * Обработчик шага ввода полного имени (ФИО) включается только если на один телефон находит несколько сотрудников.

@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
+import { SMSRuModule } from 'node-sms-ru/nestjs';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { CodeGeneratorService } from '../utils/code.generator.service';
-import { PhoneValidationService } from '../utils/phone.validation.service';
+import { env } from '../config/env';
+import { AuthMiddleware } from './auth.middleware';
 import { AuthService } from './auth.service/auth.service';
 import { AuthStartHandler } from './auth.service/handlers/auth-start.handler';
 import { MessageHandler } from './auth.service/handlers/message.handler';
@@ -14,6 +15,7 @@ import { FullnameStepHandler } from './auth.service/steps/fullname-step.handler'
 import { PhoneAuthFlowHandler } from './auth.service/steps/phoneAuthFlow-step.handler';
 import { SessionTimeoutUtil } from './auth.service/utils/session-timeout.util';
 import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
+import { UtilsModule } from '@/utils/utils.module';
 
 /**
  * Модуль аутентификации для MAX бота в NestJS‑приложении.
@@ -40,10 +42,6 @@ import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
     SessionManagerService,
     IdMaxService,
 
-    // Вспомогательные сервисы
-    CodeGeneratorService,
-    PhoneValidationService,
-
     // Обработчики событий
     AuthStartHandler,
     PhoneConfirmationHandler,
@@ -55,6 +53,7 @@ import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
     CodeStepHandler,
 
     // Утилиты
+    AuthMiddleware,
     {
       provide: SessionTimeoutUtil,
       useFactory: (sessionManager: SessionManagerService) => {
@@ -67,6 +66,7 @@ import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
     // Внешние зависимости
     PrismaService,
   ],
-  exports: [AuthService],
+  exports: [AuthService, AuthMiddleware],
+  imports: [UtilsModule, SMSRuModule.forRoot({ api_id: env.SMS_RU_API_ID })],
 })
 export class AuthModule {}

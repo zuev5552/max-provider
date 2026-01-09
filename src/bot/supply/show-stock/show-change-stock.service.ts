@@ -2,9 +2,9 @@
 import { Context } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { PrismaService } from '../../../../../prisma/prisma.service';
-import { ShowStockService } from '../show-stock.service';
+import { PrismaService } from '../../../../prisma/prisma.service';
 import { SessionStockService } from './session-stock.service';
+import { ShowStockService } from './show-stock.service';
 
 /**
  * Сервис для обработки команд изменения запасов сырья через бота.
@@ -43,13 +43,14 @@ export class ShowChangeStockService {
    * // Если не найден: отправляет список всех доступных наименований
    */
   async showChangeStock(ctx: Context): Promise<void> {
-    /** Уникальный идентификатор сессии (chatId или user_id отправителя). */
-    const key = ctx.chatId || ctx.message?.sender?.user_id;
+    /** Уникальный идентификатор сессии (user_id отправителя). */
+    const key = ctx.user?.user_id || ctx.message?.sender?.user_id;
     /** Введённое пользователем наименование сырья для поиска. */
     const nameFromUser = ctx.message?.body.text;
     /** Идентификатор пользователя для персонализации ответа. */
     const userId = ctx.user?.user_id;
     if (!nameFromUser || !userId || !key) return;
+
     const item = await this.prisma.inventoryItem.findFirst({
       where: {
         name: {

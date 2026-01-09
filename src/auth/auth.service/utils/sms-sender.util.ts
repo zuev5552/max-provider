@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SMSRu } from 'node-sms-ru';
 
 import { SessionManagerService } from '../session.manager.service';
-import { CodeGeneratorService } from '@/utils/code.generator.service';
+import { CodeGeneratorService } from '@/utils/core/code.generator.service';
 
 /**
  * Утилита отправки SMS‑кодов подтверждения через сервис SMS.ru.

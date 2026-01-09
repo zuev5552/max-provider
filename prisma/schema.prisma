@@ -70,19 +70,20 @@ model Unit {
   state    String?
   timezone String?
 
-  type                  UnitType                @relation(fields: [typeId], references: [id])
-  unitsRoles            UserUnitRole[]
-  staff                 Staff[]
-  subscribes            Subscribe[]
-  departments           UnitDepartment[]
-  inventoryStocks       InventoryStocks[]
-  inventoryLowStocks    InventoryLowStock[]
-  inventorySettingsUnit InventorySettingsUnit?
-  inventoryItemSettings InventoryItemSettings[]
-  shifts                Shift[]
-  schedules             Schedule[]
-  premiumRuleUnits      PremiumRuleUnit[]
-  couriersOrder         CouriersOrder[]
+  type                       UnitType                    @relation(fields: [typeId], references: [id])
+  unitsRoles                 UserUnitRole[]
+  staff                      Staff[]
+  subscribes                 Subscribe[]
+  departments                UnitDepartment[]
+  inventoryStocks            InventoryStocks[]
+  inventoryLowStocks         InventoryLowStock[]
+  inventorySettingsUnit      InventorySettingsUnit?
+  inventoryItemSettings      InventoryItemSettings[]
+  shifts                     Shift[]
+  schedules                  Schedule[]
+  premiumRuleUnits           PremiumRuleUnit[]
+  couriersOrder              CouriersOrder[]
+  problemOrdersSettingsUnits ProblemOrdersSettingsUnit[]
 
   @@map("units")
 }
@@ -540,9 +541,11 @@ model CouriersOrder {
   handedOverToDeliveryAtLocal DateTime // Определяется на основании таймзоны пиццерии при загрузке
   orderFulfilmentFlagAtLocal  DateTime? // Определяется на основании таймзоны пиццерии при загрузке
 
-  staff Staff  @relation(fields: [courierStaffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  unit  Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  shift Shift? @relation(fields: [staffShiftId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  staff                Staff                 @relation(fields: [courierStaffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  unit                 Unit                  @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  shift                Shift?                @relation(fields: [staffShiftId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  problemOrders        ProblemOrders[]
+  courierOrdersRatings CourierOrdersRating[]
 
   @@map("couriers_orders")
 }
@@ -562,4 +565,48 @@ model StaffMax {
 
   @@index([staffId])
   @@map("staff_max")
+}
+
+model ProblemOrders {
+  orderId                         String    @id @db.VarChar(32)
+  courierComment                  String?   @db.VarChar(400)
+  klnRecommendation               String?   @db.VarChar(255)
+  problemTypeCode                 String?   @db.VarChar(400)
+  graphManagerDecision            String?   @db.VarChar(255)
+  extraTime                       Int?      @db.SmallInt
+  delayDuration                   Decimal?  @db.Decimal
+  duplicate                       Boolean?
+  courierNotificationSentAt       DateTime?
+  urlPhoto                        String?   @db.VarChar(255)
+  directorFinalDecision           String?   @db.VarChar(255)
+  resolutionForDelaySentToCourier Boolean  @default(false)
+  tripClarificationSentToCourier  Boolean  @default(false)
+
+  couriersOrders CouriersOrder @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("problem_orders")
+}
+
+model ProblemOrdersSettingsUnit {
+  unitId               String  @id @db.VarChar(32)
+  extraTime            Int // экстра время в минутах
+  bicycle              Boolean @default(false)
+  longOnFoot           Boolean @default(true)
+  longOnFootTime       Int     @default(14) // превышение лимита по походу пешком
+  unitDirectorIdMax    BigInt? @unique
+  scheduleManagerIdMax BigInt? @unique
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("problem_orders_settings_units")
+}
+
+model CourierOrdersRating {
+  orderId            String  @id @db.VarChar(32)
+  rating             Decimal // рейтинг
+  causeCorrectRating String? // если поездка некорректная то рейтинг 100
+
+  couriersOrders CouriersOrder @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("courier_orders_rating")
 }

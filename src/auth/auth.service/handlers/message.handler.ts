@@ -6,8 +6,8 @@ import { CodeStepHandler } from '../steps/code-step.handler';
 import { PhoneAuthFlowHandler } from '../steps/phoneAuthFlow-step.handler';
 import { FullnameStepHandler } from '../steps/fullname-step.handler';
 import { MESSAGES } from '../utils/messages.constants';
-import { PhoneValidationService } from '@/utils/phone.validation.service';
-import { safeReply } from '@/utils/safe-reply.util';
+import { PhoneValidationService } from '@/utils/validation/phone.validation.service';
+import { safeReply } from '@/utils/bot/safe-reply.util';
 
 /**
  * Обработчик входящих сообщений от пользователей в процессе аутентификации.

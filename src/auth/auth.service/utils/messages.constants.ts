@@ -23,5 +23,6 @@ export const MESSAGES = {
   FULLNAME_PROMPT: (namesList: string) =>
     `Найден(ы) сотрудник(ы): ${namesList}.\nУкажите ваше полное имя (ФИО) точно как в системе.`,
   SUCCESS_AUTH: (lastName: string, firstName: string) =>
-    `Успешно! ${lastName} ${firstName} успешно авторизован. Посмотрите, что я умею в командах. Для вывода команды пишите /имя_команды, например /faq`,
+    `Успешно! ${lastName} ${firstName} успешно авторизован. 
+Для запуска введите команду /start`,
 };

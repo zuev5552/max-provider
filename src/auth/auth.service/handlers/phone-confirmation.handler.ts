@@ -4,8 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SessionManagerService } from '../session.manager.service';
 import { PhoneAuthFlowHandler } from '../steps/phoneAuthFlow-step.handler';
 import { MESSAGES } from '../utils/messages.constants';
-import { PhoneValidationService } from '@/utils/phone.validation.service';
-import { safeReply } from '@/utils/safe-reply.util';
+import { PhoneValidationService } from '@/utils/validation/phone.validation.service';
+import { safeReply } from '@/utils/bot/safe-reply.util';
 
 /**
  * Обработчик подтверждения номера телефона пользователем через интерактивные кнопки.
