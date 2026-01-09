@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BotModule } from './bot/bot.module';
 
-
 /**
  * Основной модуль приложения NestJS.
  *
