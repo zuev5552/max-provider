@@ -4,6 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { commandsList } from './commands/commandsList';
 import { FaqService } from './delivery/commands/faq.service';
+import { MyOrdersService } from './delivery/commands/my-orders/my-orders.service';
 import { PaymentQrCodeService } from './delivery/commands/qr-code.service';
 import { DeliveryMenuService } from './delivery/delivery-menu.service';
 import { SessionStockService } from './supply/show-stock/session-stock.service';
@@ -45,6 +46,7 @@ export class BotSetupService {
     private deliveryMenuService: DeliveryMenuService,
     private faqService: FaqService,
     private paymentQrCodeService: PaymentQrCodeService,
+    private myOrdersService: MyOrdersService,
   ) {}
 
   /**
@@ -159,6 +161,9 @@ export class BotSetupService {
 
       /** 3.3. QR код для оплаты */
       bot.action('qr_code', async (ctx: Context) => await this.paymentQrCodeService.showQrCode(ctx));
+
+      /** 3.4. Заказы курьера за 3 дня */
+      bot.action('my-orders', async (ctx: Context) => await this.myOrdersService.showMyOrders(ctx));
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);
     }

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 
 import { EventDeduplicatorService } from './bot/event-deduplicator.service';
+import { MessageChunkService } from './bot/message-chunk.service';
 import { CodeGeneratorService } from './core/code.generator.service';
 import { PhoneValidationService } from './validation/phone.validation.service';
 
 @Module({
-  providers: [EventDeduplicatorService, PhoneValidationService, CodeGeneratorService],
-  exports: [EventDeduplicatorService, PhoneValidationService, CodeGeneratorService],
+  providers: [EventDeduplicatorService, PhoneValidationService, CodeGeneratorService, MessageChunkService],
+  exports: [EventDeduplicatorService, PhoneValidationService, CodeGeneratorService, MessageChunkService],
 })
 export class UtilsModule {}
