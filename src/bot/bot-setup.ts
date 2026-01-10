@@ -5,6 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { commandsList } from './commands/commandsList';
 import { FaqService } from './delivery/commands/faq.service';
 import { MyOrdersService } from './delivery/commands/my-orders/my-orders.service';
+import { MyProblemOrdersService } from './delivery/commands/my-problem-orders/my-problem-orders.service';
 import { PaymentQrCodeService } from './delivery/commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from './delivery/delivery-menu.service';
 import { SessionStockService } from './supply/show-stock/session-stock.service';
@@ -17,7 +18,7 @@ import { WelcomeMessageService } from './welcome/welcome-message.service';
 import { AuthMiddleware } from '@/auth/auth.middleware';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
-import { MyProblemOrdersService } from './delivery/commands/my-problem-orders/my-problem-orders.service';
+import { CourierPremiumPaymentsService } from './delivery/commands/my-salary/my-salary.service';
 
 /**
  * Сервис настройки обработчиков событий для MAX‑бота.
@@ -49,6 +50,7 @@ export class BotSetupService {
     private paymentQrCodeService: PaymentQrCodeService,
     private myOrdersService: MyOrdersService,
     private myProblemOrdersService: MyProblemOrdersService,
+    private mySalaryService: CourierPremiumPaymentsService,
   ) {}
 
   /**
@@ -169,6 +171,9 @@ export class BotSetupService {
 
       /** 3.4. Проблемные заказы курьера за 3 месяца */
       bot.action('my-problem-orders', async (ctx: Context) => await this.myProblemOrdersService.showProblemOrders(ctx));
+
+      /** 3.5. Мои доплаты */
+      bot.action('my-salary', async (ctx: Context) => await this.mySalaryService.showPremiumPayments(ctx));
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);
     }
