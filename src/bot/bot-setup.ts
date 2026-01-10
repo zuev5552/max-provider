@@ -5,7 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { commandsList } from './commands/commandsList';
 import { FaqService } from './delivery/commands/faq.service';
 import { MyOrdersService } from './delivery/commands/my-orders/my-orders.service';
-import { PaymentQrCodeService } from './delivery/commands/qr-code.service';
+import { PaymentQrCodeService } from './delivery/commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from './delivery/delivery-menu.service';
 import { SessionStockService } from './supply/show-stock/session-stock.service';
 import { ShowChangeStockService } from './supply/show-stock/show-change-stock.service';

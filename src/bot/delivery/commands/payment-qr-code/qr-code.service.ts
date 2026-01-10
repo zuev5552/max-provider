@@ -4,7 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import fs from 'fs';
 import path from 'path';
 
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../../prisma/prisma.service';
+import { CouriersOnShift } from './type';
 
 /**
  * Сервис для работы с QR‑кодами оплаты для курьеров
@@ -229,19 +230,3 @@ export class PaymentQrCodeService {
     return null;
   }
 }
-
-type CouriersOnShift = {
-  id: string;
-  clockInAt: string;
-  clockInAtLocal: string;
-  scheduledClockInAt: string;
-  scheduledClockInAtLocal: string;
-  positionId: string;
-  positionName: string;
-  scheduleId: string;
-  unitId: string;
-  unitName: string;
-  deliveredOrdersCount: number;
-  lateOrdersCount: number;
-  cashFromOrders: number;
-};
