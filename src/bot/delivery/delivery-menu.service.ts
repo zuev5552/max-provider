@@ -16,7 +16,7 @@ export class DeliveryMenuService {
       [Keyboard.button.callback('Размеры доплат в пиццериях', 'Размеры доплат в пиццериях')],
       [Keyboard.button.callback('Мои доплаты', 'Мои доплаты')],
       [Keyboard.button.callback('Мои заказы за неделю', 'my-orders')],
-      [Keyboard.button.callback('Проблемные поездки', 'Проблемные поездки')],
+      [Keyboard.button.callback('Мои проблемные поездки', 'my-problem-orders')],
       [Keyboard.button.callback('Рейтинг и премия за скорость', 'Рейтинг и премия за скорость')],
       [Keyboard.button.callback('Назад', 'back-welcome-menu')],
     ]);

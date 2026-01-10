@@ -17,6 +17,7 @@ import { WelcomeMessageService } from './welcome/welcome-message.service';
 import { AuthMiddleware } from '@/auth/auth.middleware';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
+import { MyProblemOrdersService } from './delivery/commands/my-problem-orders/my-problem-orders.service';
 
 /**
  * Сервис настройки обработчиков событий для MAX‑бота.
@@ -47,6 +48,7 @@ export class BotSetupService {
     private faqService: FaqService,
     private paymentQrCodeService: PaymentQrCodeService,
     private myOrdersService: MyOrdersService,
+    private myProblemOrdersService: MyProblemOrdersService,
   ) {}
 
   /**
@@ -162,8 +164,11 @@ export class BotSetupService {
       /** 3.3. QR код для оплаты */
       bot.action('qr_code', async (ctx: Context) => await this.paymentQrCodeService.showQrCode(ctx));
 
-      /** 3.4. Заказы курьера за 3 дня */
+      /** 3.4. Заказы курьера за неделю */
       bot.action('my-orders', async (ctx: Context) => await this.myOrdersService.showMyOrders(ctx));
+
+      /** 3.4. Проблемные заказы курьера за 3 месяца */
+      bot.action('my-problem-orders', async (ctx: Context) => await this.myProblemOrdersService.showProblemOrders(ctx));
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);
     }

@@ -148,6 +148,7 @@ export class MyOrdersService {
   private async sendChunks(chunks: string[], ctx: Context): Promise<void> {
     for (const chunk of chunks) {
       await ctx.reply(chunk);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
