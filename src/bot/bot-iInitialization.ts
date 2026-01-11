@@ -5,6 +5,7 @@ import { env } from 'config/env';
 
 import { BotSetupService } from './bot-setup';
 
+
 /**
  * Сервис предоставления экземпляра бота для взаимодействия с API мессенджера.
  * Создаёт экземпляр бота при наличии токена SUPPLY_BOT_TOKEN в окружении.

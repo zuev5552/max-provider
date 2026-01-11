@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 
+import { CourierHandlersService } from './bot-handlers/courier.handlers';
+import { GeneralHandlersService } from './bot-handlers/general.handlers';
+import { StockHandlersService } from './bot-handlers/stock.handlers';
 import { BotInitializationService } from './bot-iInitialization';
 import { BotSetupService } from './bot-setup';
 import { DeliveryModule } from './delivery/delivery.module';
@@ -11,6 +14,14 @@ import { UtilsModule } from '@/utils/utils.module';
 
 @Module({
   imports: [AuthModule, UtilsModule, SupplyModule, DeliveryModule],
-  providers: [BotInitializationService, BotSetupService, WelcomeMessageService, WelcomeMenuService],
+  providers: [
+    BotInitializationService,
+    BotSetupService,
+    WelcomeMessageService,
+    WelcomeMenuService,
+    CourierHandlersService,
+    GeneralHandlersService,
+    StockHandlersService,
+  ],
 })
 export class BotModule {}

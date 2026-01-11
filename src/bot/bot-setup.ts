@@ -1,220 +1,50 @@
-/* eslint-disable perfectionist/sort-classes */
-import { Bot, Context, Keyboard } from '@maxhub/max-bot-api';
+// bot-setup.service.ts
+import { Bot } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { commandsList } from './commands/commandsList';
-import { FaqService } from './delivery/commands/faq.service';
-import { MyOrdersService } from './delivery/commands/my-orders/my-orders.service';
-import { MyProblemOrdersService } from './delivery/commands/my-problem-orders/my-problem-orders.service';
-import { CourierPremiumPaymentsService } from './delivery/commands/my-salary/my-salary.service';
-import { PaymentQrCodeService } from './delivery/commands/payment-qr-code/qr-code.service';
-import { DeliveryMenuService } from './delivery/delivery-menu.service';
-import { CourierDialogService } from './delivery/problem-order-courier-reply/courier-dialog.service';
-import { ShowChangeStockService } from './supply/show-stock/show-change-stock.service';
-import { ShowStockService } from './supply/show-stock/show-stock.service';
-import { StockAlertCallbackService } from './supply/stok-alert-callback/low-stock-callback.service';
-import { SupplyMenuService } from './supply/supply-menu.service';
-import { WelcomeMenuService } from './welcome/welcome-menu.service';
-import { WelcomeMessageService } from './welcome/welcome-message.service';
-import { AuthMiddleware } from '@/auth/auth.middleware';
-import { AuthService } from '@/auth/auth.service/auth.service';
-import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
-import { SessionService } from '@/utils/session/session.service';
+import { BotHandlerGroup } from './bot-handlers/bot-handlers.interface';
+import { CourierHandlersService } from './bot-handlers/courier.handlers';
+import { GeneralHandlersService } from './bot-handlers/general.handlers';
+import { StockHandlersService } from './bot-handlers/stock.handlers';
 
-/**
- * Сервис настройки обработчиков событий для MAX‑бота.
- *
- * Отвечает за:
- * - регистрацию команд бота в интерфейсе MAX;
- * - настройку обработчиков системных событий MAX (добавление в чат, запуск);
- * - интеграцию middleware авторизации;
- * - обработку взаимодействий с меню управления запасами сырья;
- * - обработку callback‑запросов и пользовательского ввода в MAX.
- */
 @Injectable()
 export class BotSetupService {
   readonly logger = new Logger(BotSetupService.name);
 
   constructor(
-    private deduplicator: EventDeduplicatorService,
-    private authService: AuthService,
-    private authVerification: AuthMiddleware,
-    private welcomeMessageService: WelcomeMessageService,
-    private welcomeMenuService: WelcomeMenuService,
-    private supplyMenuService: SupplyMenuService,
-    private showStockService: ShowStockService,
-    private sessionService: SessionService,
-    private showChangeStockService: ShowChangeStockService,
-    private stockAlertCallbackService: StockAlertCallbackService,
-    private deliveryMenuService: DeliveryMenuService,
-    private faqService: FaqService,
-    private paymentQrCodeService: PaymentQrCodeService,
-    private myOrdersService: MyOrdersService,
-    private myProblemOrdersService: MyProblemOrdersService,
-    private mySalaryService: CourierPremiumPaymentsService,
-    private courierDialog: CourierDialogService,
+    private generalHandlers: GeneralHandlersService,
+    private stockHandlers: StockHandlersService,
+    private courierHandlers: CourierHandlersService,
   ) {}
 
-  /**
-   * Инициализирует все обработчики событий MAX‑бота, группируя их по бизнес‑логике:
-   * 1. Общий сервис (команды, добавление в чат, авторизация);
-   * 2. Обработка хандлеров по программе сырья (меню, остатки, оповещения о низком уровне).
-   *
-   * @param {Bot} bot - экземпляр MAX‑бота для настройки обработчиков.
-   *   Должен быть инициализирован и готов к регистрации обработчиков событий.
-   *
-   * @returns {Promise<void>} Promise, разрешающийся после полной настройки всех обработчиков MAX‑бота.
-   *
-   * @throws {Error} При ошибке настройки обработчиков: ошибка логируется через
-   *   `this.logger.error` и выбрасывается для обработки на вышестоящем уровне.
-   *
-   * @example
-   * ```typescript
-   * const bot = new Bot(token);
-   * await botSetupService.setupHandlers(bot);
-   * ```
-   */
   async setupHandlers(bot: Bot): Promise<void> {
     try {
-      // 1. Общий сервис
-      /** 1.1. Установка команд MAX‑бота */
-      await bot.api.setMyCommands(commandsList);
+      this.logger.log('Начало инициализации обработчиков бота...');
 
-      bot.command('get_myId', async (ctx: Context) => {
-        await ctx.reply(`Твой ID: ${ctx.message?.sender?.user_id}`);
-      });
+      // Собираем все обработчики
+      const handlers: BotHandlerGroup[] = [this.generalHandlers, this.stockHandlers, this.courierHandlers];
 
-      /** 1.2. Обработчик добавления MAX‑бота в чат */
-      bot.on('bot_added', async (ctx: Context, next) => {
-        const key = this.deduplicator.getKey(ctx);
-        if (!key || this.deduplicator.isDuplicate(key)) return await next();
-        await ctx.reply(`chatID: ${ctx.chatId}. \nУкажите его в настройках Dodo-sky`);
-      });
+      // Сортируем по приоритету (от меньшего к большему)
+      const sortedHandlers = handlers.sort((a, b) => a.getPriority() - b.getPriority());
 
-      /** 1.3. Настройка авторизации для MAX‑бота */
-      this.authService.setupBot(bot);
-      bot.on('bot_started', async (ctx: Context) => {
-        await ctx.reply(this.welcomeMessageService.getWelcomeMessage(), {
-          attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact('Авторизация')]])],
-        });
-      });
+      // Последовательно инициализируем каждый обработчик
+      for (const handler of sortedHandlers) {
+        const handlerName = handler.constructor.name;
+        this.logger.log(`Инициализация обработчика: ${handlerName} (приоритет: ${handler.getPriority()})`);
 
-      /** 1.4. Подключение middleware авторизации */
-      bot.use(this.authVerification.use.bind(this.authVerification));
-
-      /** 1.5. Обработчики команд для авторизованных пользователей */
-      bot.command('start', async (ctx: Context) => await this.welcomeMenuService.handleStartCommand(ctx));
-      bot.action('back-welcome-menu', async (ctx: Context) => await this.welcomeMenuService.handleStartCommand(ctx));
-
-      // 2. Обработка хандлеров по программе сырьё
-      /** 2.1. Главное меню по управлению запасами сырья */
-      bot.action('service_stock_control', async (ctx: Context) => await this.supplyMenuService.showSupplyMenu(ctx));
-
-      /** 2.2. Справка по работе с запасами сырья */
-      bot.action('faq-supply', async (ctx: Context) => await this.supplyMenuService.showFaq(ctx));
-
-      /** 2.3. Обработка ручного ввода наименования сырья */
-      /** 2.3.1. Запуск сессии поиска остатков по введённому наименованию */
-      bot.action('change-supply', async (ctx: Context) => await this.supplyMenuService.showChangeStock(ctx));
-
-      /** 2.3.2. Обработка введённого пользователем наименования сырья */
-      bot.on('message_created', async (ctx: Context, next) => {
-        const userId = ctx.user?.user_id || ctx.message!.sender?.user_id;
-        if (!ctx.message || !userId) return await next();
-
-        const session = this.sessionService.get(userId);
-        if (!session) return await next();
-        if (session.state !== 'awaiting_itemName') return await next();
-
-        await this.showChangeStockService.showChangeStock(ctx);
-      });
-
-      /** 2.4. Отображение остатков по заранее заданным позициям сырья */
-      bot.action(
-        [
-          'Тесто 20',
-          'Тесто 25',
-          'Тесто 30',
-          'Тесто 35',
-          'Сыр моцарелла',
-          'Коробка 20',
-          'Коробка 25',
-          'Коробка 30',
-          'Коробка 35',
-          'Коробка для закусок',
-        ],
-        async (ctx: Context) => {
-          await ctx.reply('Смотрю в DodoIs остатки, ждите ...');
-          await this.showStockService.showStockService(ctx);
-        },
-      );
-
-      /** 2.5. Обработка callback‑запросов о низком уровне запасов (выбор решения и отображение времени на решение) */
-      bot.on('message_callback', async (ctx: Context, next) => {
-        const payload = ctx.callback?.payload;
-        if (!payload) return await next();
-        if (payload.split(':')[0] !== 'lowStock') return await next();
-        const userName = ctx.callback.user.name;
-        await this.stockAlertCallbackService.handleLowStockCallback(ctx, payload, userName);
-      });
-
-      // 3. Обработка хандлеров для курьеров
-
-      /** 3.1 Обработка ответа курьера по проблемной поездке */
-      /** 3.1.1 Старт сессии */
-      bot.on('message_callback', async (ctx: Context, next) => {
-        const userId = ctx.user?.user_id;
-        if (!userId) return await next();
-        const payload = ctx.callback?.payload;
-        if (!payload) return await next();
-        const orderId = payload.split(':')[1];
-        if (payload.split(':')[0] !== 'problemOrderReply') return await next();
-        this.sessionService.create(userId, { state: 'waiting_courier_reply', orderId });
-        await ctx.reply('Напишите текстом ваш ответ (максимум 400 символов)');
-      });
-
-      /** 3.1.2. Обработка введённого курьером ответа (фото или текст) */
-      bot.on('message_created', async (ctx: Context, next) => {
-        const userId = ctx.user?.user_id;
-        if (!userId) return await next();
-
-        const session = this.sessionService.get(userId);
-        if (!session || !session.orderId) return await next();
-
-        switch (session.state) {
-          case 'waiting_courier_reply':
-            await this.courierDialog.courierReply(ctx, session.orderId);
-            break;
-          case 'awaiting_photo_from_courier':
-            await this.courierDialog.finishDialogWithPhoto(ctx);
-            break;
-          default:
-            return await next();
+        try {
+          await handler.setup(bot);
+          this.logger.log(`Обработчик ${handlerName} успешно инициализирован`);
+        } catch (error) {
+          this.logger.error(`Ошибка при инициализации ${handlerName}:`, error);
+          throw new Error(`Failed to initialize handler ${handlerName}: ${error.message}`);
         }
-      });
-      /** 3.1.3. Обработка добавления фото */
-      bot.action('photo_no', async (ctx: Context) => await this.courierDialog.finishDialogNoPhoto(ctx));
-      bot.action('photo_yes', async (ctx: Context) => await this.courierDialog.photo_yes(ctx));
+      }
 
-      /** 3.2. Главное меню сервиса для курьеров */
-      bot.action('service_courier', async (ctx: Context) => await this.deliveryMenuService.showDeliveryMenu(ctx));
-
-      /** 3.2.1. Справка для курьеров */
-      bot.action('faq-delivery', async (ctx: Context) => await this.faqService.showFaq(ctx));
-
-      /** 3.2.2. QR код для оплаты */
-      bot.action('qr_code', async (ctx: Context) => await this.paymentQrCodeService.showQrCode(ctx));
-
-      /** 3.2.3. Заказы курьера за неделю */
-      bot.action('my-orders', async (ctx: Context) => await this.myOrdersService.showMyOrders(ctx));
-
-      /** 3.2.4. Проблемные заказы курьера за 3 месяца */
-      bot.action('my-problem-orders', async (ctx: Context) => await this.myProblemOrdersService.showProblemOrders(ctx));
-
-      /** 3.2.5. Мои доплаты */
-      bot.action('my-salary', async (ctx: Context) => await this.mySalaryService.showPremiumPayments(ctx));
+      this.logger.log('Все обработчики успешно инициализированы');
     } catch (error) {
-      this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);
+      this.logger.error('Критическая ошибка при инициализации обработчиков бота:', error);
+      throw error;
     }
   }
 }
