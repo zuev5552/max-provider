@@ -15,7 +15,6 @@ import { FullnameStepHandler } from './auth.service/steps/fullname-step.handler'
 import { PhoneAuthFlowHandler } from './auth.service/steps/phoneAuthFlow-step.handler';
 import { SessionTimeoutUtil } from './auth.service/utils/session-timeout.util';
 import { SmsSenderUtil } from './auth.service/utils/sms-sender.util';
-import { UtilsModule } from '@/utils/utils.module';
 
 /**
  * Модуль аутентификации для MAX бота в NestJS‑приложении.
@@ -67,6 +66,6 @@ import { UtilsModule } from '@/utils/utils.module';
     PrismaService,
   ],
   exports: [AuthService, AuthMiddleware],
-  imports: [UtilsModule, SMSRuModule.forRoot({ api_id: env.SMS_RU_API_ID })],
+  imports: [SMSRuModule.forRoot({ api_id: env.SMS_RU_API_ID })],
 })
 export class AuthModule {}

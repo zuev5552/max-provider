@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../prisma/prisma.module';
 import { BotModule } from './bot/bot.module';
+import { UtilsModule } from './utils/utils.module';
 
 /**
  * Основной модуль приложения NestJS.
@@ -14,6 +15,6 @@ import { BotModule } from './bot/bot.module';
  * @module AppModule
  */
 @Module({
-  imports: [PrismaModule, BotModule],
+  imports: [PrismaModule, BotModule, UtilsModule],
 })
 export class AppModule {}

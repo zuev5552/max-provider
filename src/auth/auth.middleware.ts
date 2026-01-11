@@ -36,8 +36,9 @@ export class AuthMiddleware {
    * @returns {Promise<void>}
    */
   async use(ctx: Context, next: NextFunction): Promise<void> {
-    // console.dir(ctx, { depf: null });
-    // console.dir(ctx.message?.body, { depf: null });
+    console.dir(ctx, { depf: null });
+    console.dir(ctx.message?.body, { depf: null });
+    console.dir(ctx.message?.recipient, { depf: null });
     // console.dir(ctx.message?.body.attachments, { depf: null });
 
     // 1. Безопасное получение userId

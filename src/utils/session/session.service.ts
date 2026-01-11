@@ -1,34 +1,25 @@
 /* eslint-disable perfectionist/sort-classes */
 import { Injectable, Logger } from '@nestjs/common';
 
+import { SessionType } from './type';
+
 /** Сервис для управления сессиями диалогов с автоматической очисткой по таймауту.
  * Хранит состояния диалогов, orderId и связанные с ними таймеры очистки. */
 @Injectable()
-export class DeliverySessionService {
-  // Map: ключ → объект с состоянием, orderId и таймером
-  private sessions = new Map<number, { state: string; orderId: string; timer: NodeJS.Timeout }>();
+export class SessionService {
+  private sessions = new Map<number, SessionType>();
   private readonly DIALOG_TIMEOUT = 30 * 60 * 1000; // 30 минут
 
-  private logger = new Logger(DeliverySessionService.name);
+  private logger = new Logger(SessionService.name);
 
   /**
    * Получает текущее состояние диалога по ключу.
    * @param {number} key - Уникальный идентификатор сессии (chatId или userId)
    * @returns {string | undefined} - Текущее состояние диалога или undefined, если сессия не найдена
    */
-  get(key: number): string | undefined {
+  get(key: number): SessionType | undefined {
     const session = this.sessions.get(key);
-    return session?.state;
-  }
-
-  /**
-   * Получает orderId из сессии по ключу.
-   * @param {number} key - Уникальный идентификатор сессии
-   * @returns {string | null} - orderId или null, если сессия не найдена или orderId не установлен
-   */
-  getOrderId(key: number): string | null {
-    const session = this.sessions.get(key);
-    return session?.orderId || null;
+    return session;
   }
 
   /**
@@ -38,18 +29,37 @@ export class DeliverySessionService {
    * @param {string} state - Новое состояние диалога
    * @param {string} orderId - ID заказа, связанный с диалогом
    */
-  set(key: number, state: string, orderId: string): void {
-    // Удаляем старый таймер, если он был
-    this.clearTimer(key);
+  create(key: number, partial: Partial<SessionType>): void {
+    const timer = setTimeout(() => {
+      this.logger.log(`Диалог для ключа ${key} автоматически очищен (30 минут истекли)`);
+    }, this.DIALOG_TIMEOUT);
 
-    // Создаём новый таймер
+    const createSession: SessionType = {
+      ...partial,
+      timer,
+    };
+    // Сохраняем сессию
+    this.sessions.set(key, createSession);
+  }
+
+  update(key: number, partial: Partial<SessionType>): void {
+    const currentSession = this.sessions.get(key);
+    // Обновляем таймер
+    this.clearTimer(key);
     const timer = setTimeout(() => {
       this.delete(key);
       this.logger.log(`Диалог для ключа ${key} автоматически очищен (30 минут истекли)`);
     }, this.DIALOG_TIMEOUT);
 
-    // Сохраняем состояние, orderId и таймер в одном объекте
-    this.sessions.set(key, { state, orderId, timer });
+    const updatedSession: SessionType = {
+      ...currentSession,
+      ...partial,
+      timer,
+    };
+
+    //Обновляем сессию
+    this.sessions.set(key, updatedSession);
+    this.logger.debug(`[session_updated] chatId: ${key}`);
   }
 
   /**

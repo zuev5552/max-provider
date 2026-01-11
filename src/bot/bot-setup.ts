@@ -10,8 +10,6 @@ import { CourierPremiumPaymentsService } from './delivery/commands/my-salary/my-
 import { PaymentQrCodeService } from './delivery/commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from './delivery/delivery-menu.service';
 import { CourierDialogService } from './delivery/problem-order-courier-reply/courier-dialog.service';
-import { DeliverySessionService } from './delivery/problem-order-courier-reply/delivery-session.service';
-import { SessionStockService } from './supply/show-stock/session-stock.service';
 import { ShowChangeStockService } from './supply/show-stock/show-change-stock.service';
 import { ShowStockService } from './supply/show-stock/show-stock.service';
 import { StockAlertCallbackService } from './supply/stok-alert-callback/low-stock-callback.service';
@@ -21,6 +19,7 @@ import { WelcomeMessageService } from './welcome/welcome-message.service';
 import { AuthMiddleware } from '@/auth/auth.middleware';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
+import { SessionService } from '@/utils/session/session.service';
 
 /**
  * Сервис настройки обработчиков событий для MAX‑бота.
@@ -44,7 +43,7 @@ export class BotSetupService {
     private welcomeMenuService: WelcomeMenuService,
     private supplyMenuService: SupplyMenuService,
     private showStockService: ShowStockService,
-    private sessionStockService: SessionStockService,
+    private sessionService: SessionService,
     private showChangeStockService: ShowChangeStockService,
     private stockAlertCallbackService: StockAlertCallbackService,
     private deliveryMenuService: DeliveryMenuService,
@@ -53,7 +52,6 @@ export class BotSetupService {
     private myOrdersService: MyOrdersService,
     private myProblemOrdersService: MyProblemOrdersService,
     private mySalaryService: CourierPremiumPaymentsService,
-    private deliverySession: DeliverySessionService,
     private courierDialog: CourierDialogService,
   ) {}
 
@@ -121,12 +119,12 @@ export class BotSetupService {
 
       /** 2.3.2. Обработка введённого пользователем наименования сырья */
       bot.on('message_created', async (ctx: Context, next) => {
-        const userId = ctx.message!.sender?.user_id || ctx.user?.user_id;
+        const userId = ctx.user?.user_id || ctx.message!.sender?.user_id;
         if (!ctx.message || !userId) return await next();
 
-        const session = this.sessionStockService.get(userId);
+        const session = this.sessionService.get(userId);
         if (!session) return await next();
-        if (session !== 'awaiting_itemName') return await next();
+        if (session.state !== 'awaiting_itemName') return await next();
 
         await this.showChangeStockService.showChangeStock(ctx);
       });
@@ -171,39 +169,49 @@ export class BotSetupService {
         if (!payload) return await next();
         const orderId = payload.split(':')[1];
         if (payload.split(':')[0] !== 'problemOrderReply') return await next();
-        this.deliverySession.set(userId, 'waiting_courier_reply', orderId);
-        await ctx.reply('Напишите ваш ответ (максимум 400 символов)');
+        this.sessionService.create(userId, { state: 'waiting_courier_reply', orderId });
+        await ctx.reply('Напишите текстом ваш ответ (максимум 400 символов)');
       });
 
-      /** 3.1.2. Обработка введённого курьером ответа */
+      /** 3.1.2. Обработка введённого курьером ответа (фото или текст) */
       bot.on('message_created', async (ctx: Context, next) => {
         const userId = ctx.user?.user_id;
         if (!userId) return await next();
-        const sessionStep = this.deliverySession.get(userId);
-        const orderId = this.deliverySession.getOrderId(userId);
-        if (!sessionStep) return await next();
-        if (sessionStep !== 'waiting_courier_reply') return await next();
-        console.log([orderId, sessionStep]);
 
-        await this.courierDialog.courierReply(ctx, userId);
+        const session = this.sessionService.get(userId);
+        if (!session || !session.orderId) return await next();
+
+        switch (session.state) {
+          case 'waiting_courier_reply':
+            await this.courierDialog.courierReply(ctx, session.orderId);
+            break;
+          case 'awaiting_photo_from_courier':
+            await this.courierDialog.finishDialogWithPhoto(ctx);
+            break;
+          default:
+            return await next();
+        }
       });
+      /** 3.1.3. Обработка добавления фото */
+      bot.action('photo_no', async (ctx: Context) => await this.courierDialog.finishDialogNoPhoto(ctx));
+      bot.action('photo_yes', async (ctx: Context) => await this.courierDialog.photo_yes(ctx));
 
       /** 3.2. Главное меню сервиса для курьеров */
       bot.action('service_courier', async (ctx: Context) => await this.deliveryMenuService.showDeliveryMenu(ctx));
 
-      /** 3.3. Справка для курьеров */
+      /** 3.2.1. Справка для курьеров */
       bot.action('faq-delivery', async (ctx: Context) => await this.faqService.showFaq(ctx));
 
-      /** 3.4. QR код для оплаты */
+      /** 3.2.2. QR код для оплаты */
       bot.action('qr_code', async (ctx: Context) => await this.paymentQrCodeService.showQrCode(ctx));
 
-      /** 3.5. Заказы курьера за неделю */
+      /** 3.2.3. Заказы курьера за неделю */
       bot.action('my-orders', async (ctx: Context) => await this.myOrdersService.showMyOrders(ctx));
 
-      /** 3.6. Проблемные заказы курьера за 3 месяца */
+      /** 3.2.4. Проблемные заказы курьера за 3 месяца */
       bot.action('my-problem-orders', async (ctx: Context) => await this.myProblemOrdersService.showProblemOrders(ctx));
 
-      /** 3. Мои доплаты */
+      /** 3.2.5. Мои доплаты */
       bot.action('my-salary', async (ctx: Context) => await this.mySalaryService.showPremiumPayments(ctx));
     } catch (error) {
       this.logger.error(`Ошибка инициализации команд MAX-бота: ${error}`);

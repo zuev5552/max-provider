@@ -2,8 +2,8 @@
 import { Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { SessionStockService } from './show-stock/session-stock.service';
 import { ShowChangeStockService } from './show-stock/show-change-stock.service';
+import { SessionService } from '@/utils/session/session.service';
 
 /**
  * Сервис для отображения меню по контролю остатков сырья, раздела FAQ и обработки запросов на ручной ввод ингредиентов.
@@ -26,7 +26,7 @@ export class SupplyMenuService {
   private readonly logger = new Logger(SupplyMenuService.name);
 
   constructor(
-    private sessionStockService: SessionStockService,
+    private sessionService: SessionService,
     private showChangeStockService: ShowChangeStockService,
   ) {}
 
@@ -149,7 +149,7 @@ export class SupplyMenuService {
       }
 
       // Сохраняем состояние диалога
-      this.sessionStockService.set(key, 'awaiting_itemName');
+      this.sessionService.create(key, { state: 'awaiting_itemName' });
       this.logger.log(`Диалог установлен для ключа ${key}: awaiting_itemName`);
     } catch (error) {
       this.logger.error('Ошибка в обработчике команды /change', error);

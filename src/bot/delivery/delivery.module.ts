@@ -6,8 +6,6 @@ import { MyProblemOrdersService } from './commands/my-problem-orders/my-problem-
 import { CourierPremiumPaymentsService } from './commands/my-salary/my-salary.service';
 import { PaymentQrCodeService } from './commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from './delivery-menu.service';
-import { UtilsModule } from '@/utils/utils.module';
-import { DeliverySessionService } from './problem-order-courier-reply/delivery-session.service';
 import { CourierDialogService } from './problem-order-courier-reply/courier-dialog.service';
 
 @Module({
@@ -18,7 +16,6 @@ import { CourierDialogService } from './problem-order-courier-reply/courier-dial
     MyOrdersService,
     MyProblemOrdersService,
     CourierPremiumPaymentsService,
-    DeliverySessionService,
     CourierDialogService,
   ],
   exports: [
@@ -28,9 +25,7 @@ import { CourierDialogService } from './problem-order-courier-reply/courier-dial
     MyOrdersService,
     MyProblemOrdersService,
     CourierPremiumPaymentsService,
-    DeliverySessionService,
     CourierDialogService,
   ],
-  imports: [UtilsModule],
 })
 export class DeliveryModule {}
