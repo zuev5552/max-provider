@@ -32,10 +32,4 @@ export class BotInitializationService implements OnModuleInit {
       process.exit(1);
     }
   }
-  getBot(): Bot {
-    if (!this.bot) {
-      throw new Error('Bot instance not created');
-    }
-    return this.bot;
-  }
 }

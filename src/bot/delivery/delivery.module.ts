@@ -7,6 +7,8 @@ import { CourierPremiumPaymentsService } from './commands/my-salary/my-salary.se
 import { PaymentQrCodeService } from './commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from './delivery-menu.service';
 import { UtilsModule } from '@/utils/utils.module';
+import { DeliverySessionService } from './problem-order-courier-reply/delivery-session.service';
+import { CourierDialogService } from './problem-order-courier-reply/courier-dialog.service';
 
 @Module({
   providers: [
@@ -16,6 +18,8 @@ import { UtilsModule } from '@/utils/utils.module';
     MyOrdersService,
     MyProblemOrdersService,
     CourierPremiumPaymentsService,
+    DeliverySessionService,
+    CourierDialogService,
   ],
   exports: [
     DeliveryMenuService,
@@ -24,6 +28,8 @@ import { UtilsModule } from '@/utils/utils.module';
     MyOrdersService,
     MyProblemOrdersService,
     CourierPremiumPaymentsService,
+    DeliverySessionService,
+    CourierDialogService,
   ],
   imports: [UtilsModule],
 })

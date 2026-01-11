@@ -13,7 +13,6 @@ export class DeliveryMenuService {
       [Keyboard.button.callback('FAQ', 'faq-delivery')],
       [Keyboard.button.callback('QR-код для оплаты', 'qr_code')],
       [Keyboard.button.callback('Обучающий заказ', 'Обучающий заказ')],
-      [Keyboard.button.callback('Размеры доплат в пиццериях', 'Размеры доплат в пиццериях')],
       [Keyboard.button.callback('Мои доплаты', 'my-salary')],
       [Keyboard.button.callback('Мои заказы за неделю', 'my-orders')],
       [Keyboard.button.callback('Мои проблемные поездки', 'my-problem-orders')],

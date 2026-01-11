@@ -577,14 +577,26 @@ model ProblemOrders {
   delayDuration                   Decimal?  @db.Decimal
   duplicate                       Boolean?
   courierNotificationSentAt       DateTime?
-  urlPhoto                        String?   @db.VarChar(255)
   directorFinalDecision           String?   @db.VarChar(255)
-  resolutionForDelaySentToCourier Boolean  @default(false)
-  tripClarificationSentToCourier  Boolean  @default(false)
+  resolutionForDelaySentToCourier Boolean   @default(false)
+  tripClarificationSentToCourier  Boolean   @default(false)
 
-  couriersOrders CouriersOrder @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  couriersOrders CouriersOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photos         ProblemOrderPhotos[]
 
   @@map("problem_orders")
+}
+
+model ProblemOrderPhotos {
+  id      BigInt @id @default(autoincrement())
+  orderId String @db.VarChar(32)
+  url     String @db.VarChar(255) // ссылка на фото
+  index   Int // Позиция фото: 1, 2 или 3
+
+  problemOrder ProblemOrders @relation(fields: [orderId], references: [orderId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([orderId, url])
+  @@map("problem_order_photos")
 }
 
 model ProblemOrdersSettingsUnit {
