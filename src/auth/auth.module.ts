@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { SMSRuModule } from 'node-sms-ru/nestjs';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { env } from '../config/env';
 import { AuthMiddleware } from '../bot/middleware/auth.middleware';
+import { env } from '../config/env';
 import { AuthService } from './auth.service/auth.service';
 import { AuthStartHandler } from './auth.service/handlers/auth-start.handler';
 import { MessageHandler } from './auth.service/handlers/message.handler';

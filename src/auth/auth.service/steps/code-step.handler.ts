@@ -4,8 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { IdMaxService } from '../idmax.service';
 import { SessionManagerService } from '../session.manager.service';
 import { MESSAGES } from '../utils/messages.constants';
-import { CodeGeneratorService } from '@/utils/core/code.generator.service';
 import { safeReply } from '@/utils/bot/safe-reply.util';
+import { CodeGeneratorService } from '@/utils/core/code.generator.service';
 
 
 /**

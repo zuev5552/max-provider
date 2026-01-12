@@ -167,7 +167,7 @@ export class SessionService {
   private getDefaultStepDescription(state: string): string {
     const descriptions = {
       waiting_courier_reply: 'Ожидание вашего комментария по заказу',
-      awaiting_photo_from_courier: 'Ожидание фотодоказательств (максимум 3 фотографии)',
+      awaiting_photo_from_courier: 'Ожидание фотодоказательства (максимум 3 фотографии)',
       awaiting_itemName: 'Ждём наименование сырья',
     };
     return descriptions[state] || 'Завершите текущий этап диалога';

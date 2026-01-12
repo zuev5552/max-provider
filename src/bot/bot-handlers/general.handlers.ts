@@ -4,8 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { WelcomeMenuService } from '../welcome/welcome-menu.service';
 import { WelcomeMessageService } from '../welcome/welcome-message.service';
-import { AuthMiddleware } from '@/bot/middleware/auth.middleware';
 import { AuthService } from '@/auth/auth.service/auth.service';
+import { AuthMiddleware } from '@/bot/middleware/auth.middleware';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
 
 @Injectable()

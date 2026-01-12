@@ -1,5 +1,5 @@
 export interface AuthSession {
-  step: 'awaiting_phone' | 'awaiting_fullname' | 'awaiting_code';
+  step: 'awaiting_code' | 'awaiting_fullname' | 'awaiting_phone';
   phone?: string;
   fullname?: string;
   code?: number;
