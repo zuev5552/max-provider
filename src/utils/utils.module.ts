@@ -3,6 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { EventDeduplicatorService } from './bot/event-deduplicator.service';
 import { MessageChunkService } from './bot/message-chunk.service';
 import { CodeGeneratorService } from './core/code.generator.service';
+import { FileStorageUtil } from './core/file-storage.util';
 import { SessionService } from './session/session.service';
 import { PhoneValidationService } from './validation/phone.validation.service';
 
@@ -14,6 +15,7 @@ import { PhoneValidationService } from './validation/phone.validation.service';
     CodeGeneratorService,
     MessageChunkService,
     SessionService,
+    FileStorageUtil,
   ],
   exports: [
     EventDeduplicatorService,
@@ -21,6 +23,7 @@ import { PhoneValidationService } from './validation/phone.validation.service';
     CodeGeneratorService,
     MessageChunkService,
     SessionService,
+    FileStorageUtil,
   ],
 })
 export class UtilsModule {}

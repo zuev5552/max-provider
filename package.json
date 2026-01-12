@@ -30,6 +30,7 @@
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "dotenv": "^17.2.3",
+    "minio": "^8.0.6",
     "node-sms-ru": "^0.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

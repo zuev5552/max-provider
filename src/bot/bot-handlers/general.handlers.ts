@@ -7,6 +7,7 @@ import { WelcomeMessageService } from '../welcome/welcome-message.service';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { AuthMiddleware } from '@/bot/middleware/auth.middleware';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
+import { SessionService } from '@/utils/session/session.service';
 
 @Injectable()
 export class GeneralHandlersService {
@@ -17,6 +18,7 @@ export class GeneralHandlersService {
     private authVerification: AuthMiddleware,
     private welcomeMessageService: WelcomeMessageService,
     private welcomeMenuService: WelcomeMenuService,
+    private sessionService: SessionService,
   ) {}
 
   async setup(bot: Bot): Promise<void> {
@@ -49,6 +51,18 @@ export class GeneralHandlersService {
     // 1.5. Обработчики команд для авторизованных пользователей
     bot.command('start', async (ctx: Context) => await this.welcomeMenuService.handleStartCommand(ctx));
     bot.action('back-welcome-menu', async (ctx: Context) => await this.welcomeMenuService.handleStartCommand(ctx));
+
+    // 1.6. Обработка отмены диалога
+    bot.command('cancel', async (ctx: Context, next) => {
+      const userId = ctx.user?.user_id;
+      if (!userId) return await next();
+
+      const session = this.sessionService.get(userId);
+      if (session) {
+        this.sessionService.delete(userId);
+        await ctx.reply('Вы отменили диалог');
+      }
+    });
 
     this.logger.log('Общие обработчики успешно инициализированы');
   }
