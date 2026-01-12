@@ -6,6 +6,7 @@ import { StockHandlersService } from './bot-handlers/stock.handlers';
 import { BotInitializationService } from './bot-iInitialization';
 import { BotSetupService } from './bot-setup';
 import { DeliveryModule } from './delivery/delivery.module';
+import { DialogBlockerMiddleware } from './middleware/dialog-blocker.middleware';
 import { SupplyModule } from './supply/supply.module';
 import { WelcomeMenuService } from './welcome/welcome-menu.service';
 import { WelcomeMessageService } from './welcome/welcome-message.service';
@@ -22,6 +23,7 @@ import { UtilsModule } from '@/utils/utils.module';
     CourierHandlersService,
     GeneralHandlersService,
     StockHandlersService,
+    DialogBlockerMiddleware,
   ],
 })
 export class BotModule {}

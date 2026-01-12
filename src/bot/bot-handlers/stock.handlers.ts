@@ -6,11 +6,10 @@ import { ShowChangeStockService } from '../supply/show-stock/show-change-stock.s
 import { ShowStockService } from '../supply/show-stock/show-stock.service';
 import { StockAlertCallbackService } from '../supply/stok-alert-callback/low-stock-callback.service';
 import { SupplyMenuService } from '../supply/supply-menu.service';
-import { BotHandlerGroup } from './bot-handlers.interface';
 import { SessionService } from '@/utils/session/session.service';
 
 @Injectable()
-export class StockHandlersService implements BotHandlerGroup {
+export class StockHandlersService {
   private logger = new Logger(StockHandlersService.name);
 
   constructor(
@@ -20,10 +19,6 @@ export class StockHandlersService implements BotHandlerGroup {
     private stockAlertCallbackService: StockAlertCallbackService,
     private sessionService: SessionService,
   ) {}
-
-  getPriority(): number {
-    return 2; // загружается после общих обработчиков
-  }
 
   async setup(bot: Bot): Promise<void> {
     this.logger.log('Инициализация обработчиков запасов сырья...');

@@ -9,11 +9,10 @@ import { CourierPremiumPaymentsService } from '../delivery/commands/my-salary/my
 import { PaymentQrCodeService } from '../delivery/commands/payment-qr-code/qr-code.service';
 import { DeliveryMenuService } from '../delivery/delivery-menu.service';
 import { CourierDialogService } from '../delivery/problem-order-courier-reply/courier-dialog.service';
-import { BotHandlerGroup } from './bot-handlers.interface';
 import { SessionService } from '@/utils/session/session.service';
 
 @Injectable()
-export class CourierHandlersService implements BotHandlerGroup {
+export class CourierHandlersService {
   private logger = new Logger(CourierHandlersService.name);
 
   constructor(
@@ -26,10 +25,6 @@ export class CourierHandlersService implements BotHandlerGroup {
     private courierDialog: CourierDialogService,
     private sessionService: SessionService,
   ) {}
-
-  getPriority(): number {
-    return 3; // загружается последним
-  }
 
   async setup(bot: Bot): Promise<void> {
     this.logger.log('Инициализация обработчиков курьеров...');

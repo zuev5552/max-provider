@@ -4,13 +4,12 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { WelcomeMenuService } from '../welcome/welcome-menu.service';
 import { WelcomeMessageService } from '../welcome/welcome-message.service';
-import { BotHandlerGroup } from './bot-handlers.interface';
-import { AuthMiddleware } from '@/auth/auth.middleware';
+import { AuthMiddleware } from '@/bot/middleware/auth.middleware';
 import { AuthService } from '@/auth/auth.service/auth.service';
 import { EventDeduplicatorService } from '@/utils/bot/event-deduplicator.service';
 
 @Injectable()
-export class GeneralHandlersService implements BotHandlerGroup {
+export class GeneralHandlersService {
   readonly logger = new Logger(GeneralHandlersService.name);
   constructor(
     private deduplicator: EventDeduplicatorService,
@@ -19,10 +18,6 @@ export class GeneralHandlersService implements BotHandlerGroup {
     private welcomeMessageService: WelcomeMessageService,
     private welcomeMenuService: WelcomeMenuService,
   ) {}
-
-  getPriority(): number {
-    return 1; // высший приоритет — загружается первым
-  }
 
   async setup(bot: Bot): Promise<void> {
     this.logger.log('Инициализация общих обработчиков...');

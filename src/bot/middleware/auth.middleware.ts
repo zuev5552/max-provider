@@ -2,7 +2,7 @@
 import { Context, Keyboard } from '@maxhub/max-bot-api';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 
 type NextFunction = () => Promise<void>;
@@ -36,10 +36,12 @@ export class AuthMiddleware {
    * @returns {Promise<void>}
    */
   async use(ctx: Context, next: NextFunction): Promise<void> {
-    console.dir(ctx, { depf: null });
-    console.dir(ctx.message?.body, { depf: null });
-    console.dir(ctx.message?.recipient, { depf: null });
+    // console.dir(ctx, { depf: null });
+    // console.dir(ctx.message?.body, { depf: null });
+    // console.dir(ctx.message?.recipient, { depf: null });
     // console.dir(ctx.message?.body.attachments, { depf: null });
+    // console.log(ctx.message?.body?.text);
+    // console.log(ctx.callback);
 
     // 1. Безопасное получение userId
     const userId = ctx.message?.sender?.user_id;
